@@ -1,0 +1,5 @@
+python-socketio
+inquirer
+yaspin
+pyfiglet
+colorama

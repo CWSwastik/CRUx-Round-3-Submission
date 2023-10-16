@@ -5,3 +5,7 @@
 # Secrets
 
 .env
+
+# Editor Settings
+
+.vscode
