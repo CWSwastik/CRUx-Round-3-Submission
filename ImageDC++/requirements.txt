@@ -1,4 +1,5 @@
 python-socketio
+websocket-client
 inquirer
 yaspin
 pyfiglet

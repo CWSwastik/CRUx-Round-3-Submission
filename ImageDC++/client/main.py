@@ -1,5 +1,6 @@
+from yaspin import yaspin
 from cli_utils import CLIUtils
-from client import connect
+from client import SocketIOClient
 
 
 def main():
@@ -7,11 +8,23 @@ def main():
     cli.display_title()
 
     name = cli.get_text_input("name", "What's your name?")
-    print(f"Hi, {name}")
 
-    connect()
+    server_url = "http://localhost:8080"
+
+    client = SocketIOClient(server_url)
+    with yaspin(text="Connecting to the server...", color="blue") as spinner:
+        cli.wait(0.5)
+        try:
+            client.connect()
+            spinner.text = "Connected to the server"
+            spinner.ok("✅ ")
+        except ConnectionError as e:
+            spinner.stop()
+            cli.log_error(str(e))
+            return
 
     while True:
+        cli.wait()
         choice = cli.get_multi_choice_input(
             "choice",
             "What would you like to do?",
