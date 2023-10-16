@@ -1,4 +1,3 @@
-from yaspin import yaspin
 from cli_utils import CLIUtils
 from client import SocketIOClient
 
@@ -12,7 +11,7 @@ def main():
     server_url = "http://localhost:8080"
 
     client = SocketIOClient(server_url)
-    with yaspin(text="Connecting to the server...", color="blue") as spinner:
+    with cli.spinner(text="Connecting to the server...", color="blue") as spinner:
         cli.wait(0.5)
         try:
             client.connect(name)
@@ -37,14 +36,39 @@ def main():
                 "Please enter the path to your image file",
             )
             try:
-                client.upload_image(path)
+                with cli.spinner("Uploading image...") as spinner:
+                    cli.wait(0.3)
+                    client.upload_image(path)
+                    spinner.text = "Image uploaded!"
+                    spinner.ok("✅ ")
             except FileNotFoundError:
                 cli.log_error("The provided file was not found!")
             except ValueError as e:
                 cli.log_error(str(e))
 
         elif choice == "Download Images":
-            print("No")
+            query = cli.get_text_input("query", "Enter search query")
+            with cli.spinner(text="Searching for images..."):
+                cli.wait(0.3)
+                images = client.search_for_images(query)
+
+            # TODO: Sort by user, like show users first, then their images containing the query
+            if len(images) == 0:
+                print(
+                    "[!] Uh Oh! Seems like there are no images that match this query."
+                )
+            else:
+                result = cli.get_selected_items(
+                    "choices",
+                    "Please choose the images that you'd like to download",
+                    images,
+                )
+                zip_path = cli.get_path("path", "Please enter the output path")
+                with cli.spinner("Downloading images...") as spinner:
+                    cli.wait(0.3)
+                    client.download_images(result, zip_path)
+                    spinner.text = f"Images downloaded to {zip_path}!"
+                    spinner.ok("✅ ")
         else:
             break
 

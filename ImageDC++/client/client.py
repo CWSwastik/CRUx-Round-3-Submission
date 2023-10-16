@@ -39,3 +39,12 @@ class SocketIOClient:
 
         data = {"filename": Path(path).name, "filedata": filedata}
         self.sio.emit("upload_image", data=data)
+
+    def search_for_images(self, query):
+        result = self.sio.call("search", query, timeout=5)
+        return result
+
+    def download_images(self, images, to_path):
+        zipfile = self.sio.call("download_images", images, timeout=5)
+        with open(to_path, "wb") as f:
+            f.write(zipfile)

@@ -2,12 +2,14 @@ import os
 import time
 import pyfiglet
 import inquirer
+from yaspin import yaspin
 from colorama import just_fix_windows_console, Fore, Style
 
 
 class CLIUtils:
     def __init__(self) -> None:
         just_fix_windows_console()
+        self.spinner = yaspin
 
     def display_title(self):
         title = pyfiglet.figlet_format("Image DC ++", font="big")
@@ -40,6 +42,17 @@ class CLIUtils:
         ]
         answers = inquirer.prompt(questions)
         return os.path.abspath(answers[qname])
+
+    def get_selected_items(self, qname, qmsg, choices):
+        questions = [
+            inquirer.Checkbox(
+                qname,
+                message=qmsg,
+                choices=choices,
+            ),
+        ]
+        answers = inquirer.prompt(questions)
+        return answers[qname]
 
     def log_message(self, message):
         print("[-] LOG: " + message)
