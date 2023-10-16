@@ -59,7 +59,7 @@ class CLIUtils:
             + message
             + Style.RESET_ALL
         )
-        self.wait()
+        self.wait(0.5)
 
     def wait(self, seconds=1):
         time.sleep(seconds)

@@ -15,7 +15,7 @@ def main():
     with yaspin(text="Connecting to the server...", color="blue") as spinner:
         cli.wait(0.5)
         try:
-            client.connect()
+            client.connect(name)
             spinner.text = "Connected to the server"
             spinner.ok("✅ ")
         except ConnectionError as e:
@@ -37,10 +37,12 @@ def main():
                 "Please enter the path to your image file",
             )
             try:
-                with open(path, "r") as f:
-                    print(f.read())
+                client.upload_image(path)
             except FileNotFoundError:
                 cli.log_error("The provided file was not found!")
+            except ValueError as e:
+                cli.log_error(str(e))
+
         elif choice == "Download Images":
             print("No")
         else:
