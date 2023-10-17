@@ -45,6 +45,7 @@ class SocketIOClient:
         self.sio.emit("upload_image", data=data)
 
     def upload_folder(self, folder_path):
+        count = 0  # Keep a track of the number of files uploaded
         folder_name = Path(folder_path).name
 
         for root, _, files in os.walk(folder_path):
@@ -63,6 +64,9 @@ class SocketIOClient:
                             "filedata": base64.b64encode(file_content.read()),
                         },
                     )
+                    count += 1
+
+        return count
 
     def search_for_images(self, query):
         result = self.sio.call("search", query, timeout=5)

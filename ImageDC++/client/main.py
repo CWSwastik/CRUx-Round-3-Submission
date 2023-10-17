@@ -37,7 +37,11 @@ def main():
                 "Please enter the path to your image file or folder of image files",
             )
             if os.path.isdir(path):
-                client.upload_folder(path)
+                with cli.spinner("Uploading folder...") as spinner:
+                    n_files = client.upload_folder(path)
+                    spinner.text = f"Folder uploaded! ({n_files}/{n_files} files)"
+                    spinner.ok("✅ ")
+
             else:
                 try:
                     with cli.spinner("Uploading image...") as spinner:
@@ -67,11 +71,18 @@ def main():
                     "Please choose the images that you'd like to download",
                     images,
                 )
-                zip_path = cli.get_path("path", "Please enter the output path")
+                if not result:
+                    print("[!] Not downloading any images as none were selected.")
+                    continue
+                zip_path = cli.get_path(
+                    "path", "Please enter the output path (ending in .zip)"
+                )
                 with cli.spinner("Downloading images...") as spinner:
                     cli.wait(0.3)
                     client.download_images(result, zip_path)
-                    spinner.text = f"Images downloaded to {zip_path}!"
+                    spinner.text = (
+                        f"{len(result)}/{len(images)} Images downloaded to {zip_path}!"
+                    )
                     spinner.ok("✅ ")
         else:
             break
