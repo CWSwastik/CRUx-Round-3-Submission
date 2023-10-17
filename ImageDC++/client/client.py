@@ -1,3 +1,4 @@
+import os
 import time
 import imghdr
 import base64
@@ -30,8 +31,11 @@ class SocketIOClient:
     def disconnect(self):
         self.sio.disconnect()
 
+    def _is_not_image(self, path):
+        return imghdr.what(path) is None
+
     def upload_image(self, path):
-        if imghdr.what(path) is None:
+        if self._is_not_image(path):
             raise ValueError("The provided file is not an image!")
 
         with open(path, "rb") as f:
@@ -39,6 +43,26 @@ class SocketIOClient:
 
         data = {"filename": Path(path).name, "filedata": filedata}
         self.sio.emit("upload_image", data=data)
+
+    def upload_folder(self, folder_path):
+        folder_name = Path(folder_path).name
+
+        for root, _, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if self._is_not_image(file_path):
+                    # Don't upload non-image files
+                    continue
+                relative_path = os.path.relpath(file_path, folder_path)
+                file_name = relative_path.replace(os.path.sep, "_")
+                with open(file_path, "rb") as file_content:
+                    self.sio.emit(
+                        "upload_image",
+                        {
+                            "filename": f"{folder_name}_{file_name}",
+                            "filedata": base64.b64encode(file_content.read()),
+                        },
+                    )
 
     def search_for_images(self, query):
         result = self.sio.call("search", query, timeout=5)

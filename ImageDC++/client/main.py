@@ -1,3 +1,4 @@
+import os
 from cli_utils import CLIUtils
 from client import SocketIOClient
 
@@ -33,18 +34,21 @@ def main():
         if choice == "Upload Images":
             path = cli.get_path(
                 "path",
-                "Please enter the path to your image file",
+                "Please enter the path to your image file or folder of image files",
             )
-            try:
-                with cli.spinner("Uploading image...") as spinner:
-                    cli.wait(0.3)
-                    client.upload_image(path)
-                    spinner.text = "Image uploaded!"
-                    spinner.ok("✅ ")
-            except FileNotFoundError:
-                cli.log_error("The provided file was not found!")
-            except ValueError as e:
-                cli.log_error(str(e))
+            if os.path.isdir(path):
+                client.upload_folder(path)
+            else:
+                try:
+                    with cli.spinner("Uploading image...") as spinner:
+                        cli.wait(0.3)
+                        client.upload_image(path)
+                        spinner.text = "Image uploaded!"
+                        spinner.ok("✅ ")
+                except FileNotFoundError:
+                    cli.log_error("The provided file was not found!")
+                except ValueError as e:
+                    cli.log_error(str(e))
 
         elif choice == "Download Images":
             query = cli.get_text_input("query", "Enter search query")

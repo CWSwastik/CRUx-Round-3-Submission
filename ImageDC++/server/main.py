@@ -3,7 +3,7 @@ import base64
 from aiohttp import web
 from utils import User, zip_images
 
-sio = socketio.AsyncServer()
+sio = socketio.AsyncServer(max_http_buffer_size=10_000_000)  # 10 MB/img
 app = web.Application()
 sio.attach(app)
 
