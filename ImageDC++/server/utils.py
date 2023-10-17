@@ -1,5 +1,5 @@
 import io
-import base64
+import os
 import zipfile
 from typing import List, Dict
 
@@ -18,7 +18,8 @@ def zip_images(images: Dict[str, bytes]) -> bytes:
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zipf:
         for img_name in images:
-            zipf.writestr(img_name, images[img_name])
+            folder, _, fname = img_name.partition("__")
+            zipf.writestr(os.path.join(folder, fname), images[img_name])
 
     zip_buffer.seek(0)
     return zip_buffer.read()

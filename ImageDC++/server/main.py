@@ -27,11 +27,11 @@ def connect(sid, environ):
 
 @sio.event
 async def upload_image(sid, data):
+    user = users[sid]
     fn = data["filename"]
     print("Image: ", sid, fn)
-    images[f"{sid}_{fn}"] = data["filedata"]
+    images[f"{user.name}__{fn}"] = data["filedata"]
 
-    user = users[sid]
     user.shared.append(fn)
 
 
@@ -39,10 +39,11 @@ async def upload_image(sid, data):
 async def search(sid, query):
     print("Search: ", query)
     search_results = []
+    user = users[sid]
 
     # Fuzzy search
     for matched_img in process.extract(query, images.keys()):
-        if matched_img[0].startswith(sid):
+        if matched_img[0].startswith(user.name):
             continue
 
         print(matched_img)
@@ -70,9 +71,9 @@ async def download_images(sid, data):
 @sio.event
 def disconnect(sid):
     print("Disconnect: ", sid)
-
+    user = users[sid]
     for img in list(images.keys()):
-        if img.startswith(sid):
+        if img.startswith(user.name):
             del images[img]
 
     del users[sid]
