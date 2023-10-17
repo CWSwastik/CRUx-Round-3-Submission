@@ -12,12 +12,12 @@ def main():
     server_url = "http://localhost:8080"
 
     client = SocketIOClient(server_url)
-    with cli.spinner(text="Connecting to the server...", color="blue") as spinner:
+    with cli.spinner(text="Connecting to the server...", color="green") as spinner:
         cli.wait(0.5)
         try:
             client.connect(name)
             spinner.text = "Connected to the server"
-            spinner.ok("✅ ")
+            spinner.ok("[✓]")
         except ConnectionError as e:
             spinner.stop()
             cli.log_error(str(e))
@@ -37,18 +37,18 @@ def main():
                 "Please enter the path to your image file or folder of image files",
             )
             if os.path.isdir(path):
-                with cli.spinner("Uploading folder...") as spinner:
+                with cli.spinner("Uploading folder...", color="green") as spinner:
                     n_files = client.upload_folder(path)
                     spinner.text = f"Folder uploaded! ({n_files}/{n_files} files)"
-                    spinner.ok("✅ ")
+                    spinner.ok("[✓]")
 
             else:
                 try:
-                    with cli.spinner("Uploading image...") as spinner:
+                    with cli.spinner("Uploading image...", color="green") as spinner:
                         cli.wait(0.3)
                         client.upload_image(path)
                         spinner.text = "Image uploaded!"
-                        spinner.ok("✅ ")
+                        spinner.ok("[✓]")
                 except FileNotFoundError:
                     cli.log_error("The provided file was not found!")
                 except ValueError as e:
@@ -77,13 +77,13 @@ def main():
                 zip_path = cli.get_path(
                     "path", "Please enter the output path (ending in .zip)"
                 )
-                with cli.spinner("Downloading images...") as spinner:
+                with cli.spinner("Downloading images...", color="green") as spinner:
                     cli.wait(0.3)
                     client.download_images(result, zip_path)
                     spinner.text = (
                         f"{len(result)}/{len(images)} Images downloaded to {zip_path}!"
                     )
-                    spinner.ok("✅ ")
+                    spinner.ok("[✓]")
         else:
             break
 
