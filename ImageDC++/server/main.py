@@ -62,10 +62,9 @@ async def download_images(sid, data):
 def disconnect(sid):
     print("Disconnect: ", sid)
 
-    # TODO: Implement properly
-    # for img in images:
-    #     if img.startswith(sid):
-    #         del images[img]
+    for img in list(images.keys()):
+        if img.startswith(sid):
+            del images[img]
 
     del users[sid]
 
