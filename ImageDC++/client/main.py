@@ -66,11 +66,18 @@ def main():
                     "[!] Uh Oh! Seems like there are no images that match this query."
                 )
             else:
+                display_text = {}
+                for img in images:
+                    user, _, fname = img.partition("__")
+                    display_text[fname + f" (Uploader: {user})"] = img
+
                 result = cli.get_selected_items(
                     "choices",
                     "Please choose the images that you'd like to download",
-                    images,
+                    display_text,
                 )
+                result = [display_text[i] for i in result]
+
                 if not result:
                     print("[!] Not downloading any images as none were selected.")
                     continue
