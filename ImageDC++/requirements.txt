@@ -4,3 +4,4 @@ inquirer
 yaspin
 pyfiglet
 colorama
+fuzzywuzzy[speedup]

@@ -1,6 +1,7 @@
 import socketio
 import base64
 from aiohttp import web
+from fuzzywuzzy import process
 from utils import User, zip_images
 
 sio = socketio.AsyncServer(max_http_buffer_size=10_000_000)  # 10 MB/img
@@ -38,13 +39,21 @@ async def upload_image(sid, data):
 async def search(sid, query):
     print("Search: ", query)
     search_results = []
-    for img in images:
-        if img.startswith(sid):
-            continue
-        if query in img:
-            search_results.append(img)
 
-    print("Search Results: ", ",".join(search_results))
+    # Fuzzy search
+    for matched_img in process.extract(query, images.keys()):
+        if matched_img[0].startswith(sid):
+            continue
+
+        print(matched_img)
+
+        # Skip matches that are less than 40
+        if matched_img[1] < 40:
+            continue
+
+        search_results.append(matched_img[0])
+
+    print("Search Results: ", ", ".join(search_results))
 
     return search_results
 
