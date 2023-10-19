@@ -67,6 +67,7 @@ class CruxTaskBot(commands.Bot):
         print(
             prfx + " Slash CMDs Synced " + Fore.YELLOW + str(len(synced)) + " Commands"
         )
+        print(Style.RESET_ALL)
 
     async def run_async(self, func, *args, **kwargs):
         return await self.loop.run_in_executor(None, func, *args, **kwargs)
