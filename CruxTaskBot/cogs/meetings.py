@@ -3,7 +3,6 @@ import asyncio
 import traceback
 from discord.ext import commands
 from discord import app_commands
-from discord.utils import MISSING
 from typing import Optional
 
 
@@ -63,7 +62,6 @@ class createMeeting(discord.ui.Modal, title="Create Meeting"):
         time_to_sleep = int(self.duration.value)  # Improve parsing of this duration
         await asyncio.sleep(time_to_sleep)  # TODO: Improve this, use database
 
-        # Fetch reactions on the original message
         sent_message = await self.channel.fetch_message(sent_message.id)
         reactions = sent_message.reactions
 

@@ -8,6 +8,8 @@ from discord.ext import commands
 import platform
 from colorama import Back, Style, Fore
 
+from utils import Database
+
 try:
     import dotenv
 except ImportError:
@@ -25,9 +27,11 @@ class Config:
 class CruxTaskBot(commands.Bot):
     def __init__(self):
         self.config = Config()
+        self.db = Database()
 
         intents = Intents.default()
         intents.members = True
+        intents.message_content = True
 
         super().__init__(
             command_prefix=self.config.bot_prefix,
@@ -51,6 +55,8 @@ class CruxTaskBot(commands.Bot):
         await self.load_extension("jishaku")
 
     async def on_ready(self):
+        await self.db.create_tables()
+
         prfx = (
             Back.BLACK
             + Fore.GREEN
