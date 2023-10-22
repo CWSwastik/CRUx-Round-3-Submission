@@ -11,6 +11,7 @@ class Task:
     deadline: datetime.datetime
     status: str
     domain: str
+    assignee: int
     id: Optional[int] = None
 
 

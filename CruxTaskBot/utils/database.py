@@ -36,7 +36,8 @@ class Database:
                     project_id BIGINT NOT NULL,
                     deadline BIGINT NOT NULL,
                     status TEXT NOT NULL,
-                    domain TEXT NOT NULL
+                    domain TEXT NOT NULL,
+                    assignee BIGINT NOT NULL
                 );
             """
             )
@@ -103,8 +104,8 @@ class Database:
     async def create_task(self, task: Task) -> None:
         await self.execute(
             """
-                INSERT INTO tasks (title, description, project_id, deadline, status, domain)
-                VALUES (?, ?, ?, ?, ?, ?);
+                INSERT INTO tasks (title, description, project_id, deadline, status, domain, assignee)
+                VALUES (?, ?, ?, ?, ?, ?, ?);
                 """,
             task.title,
             task.description,
@@ -112,6 +113,7 @@ class Database:
             task.deadline.timestamp(),
             task.status,
             task.domain,
+            task.assignee,
         )
 
     # List all tasks associated with a particular project
@@ -131,6 +133,7 @@ class Database:
                 deadline=datetime.datetime.fromtimestamp(task[4]),
                 status=task[5],
                 domain=task[6],
+                assignee=task[7],
             )
             for task in data
         ]
