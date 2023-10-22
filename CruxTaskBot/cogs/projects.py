@@ -1,8 +1,10 @@
+import asyncio
 import datetime
 import discord
 from discord.ext import commands
 from discord import app_commands
 from utils.models import Project, Task
+from typing import List, Optional
 
 
 # TODO: Permissions check
@@ -87,6 +89,7 @@ class Projects(commands.Cog):
         await interaction.response.send_message("Task created.")
 
     # View tasks command
+    # TODO: Beautify this
     @app_commands.command(
         name="view_tasks",
         description="View all tasks!",
@@ -96,11 +99,15 @@ class Projects(commands.Cog):
     )
     async def view_tasks(self, interaction: discord.Interaction, project_id: int):
         tasks = await self.bot.db.list_project_tasks(project_id)
+        final_response = self.create_task_list(tasks, interaction.guild)
+        await interaction.response.send_message(final_response)
+
+    def create_task_list(self, tasks: List[Task], guild: discord.Guild) -> str:
         organized_tasks = {}
 
         for task in tasks:
             domain_name = task.domain
-            member_name = interaction.guild.get_member(task.assignee).display_name
+            member_name = guild.get_member(task.assignee).display_name
 
             if domain_name not in organized_tasks:
                 organized_tasks[domain_name] = {}
@@ -122,7 +129,33 @@ class Projects(commands.Cog):
                     )
 
         final_response = "\n".join(response_message)
-        await interaction.response.send_message(final_response)
+        return final_response
+
+    # Send task list for every project to its channel
+    async def send_task_list_for_every_project(self):
+        projects = await self.bot.db.list_all_projects()
+        for project in projects:
+            tasks = await self.bot.db.list_project_tasks(project.id)
+            channel = self.bot.get_channel(project.channel)
+            final_response = self.create_task_list(tasks, channel.guild)
+            await channel.send(final_response)
+
+    # On ready, check how long it is from midnight and sleep until then
+    # when its midnight ruun the send_task_list_for_every_project function
+    # and then sleep until midnight again
+    @commands.Cog.listener()
+    async def on_ready(self):
+        now = datetime.datetime.now()
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if now > midnight:
+            midnight += datetime.timedelta(days=1)
+
+        time_to_sleep = (midnight - now).total_seconds()
+        await asyncio.sleep(time_to_sleep)
+
+        while True:
+            await self.send_task_list_for_every_project()
+            await asyncio.sleep(86400)
 
 
 async def setup(bot: commands.Bot) -> None:
