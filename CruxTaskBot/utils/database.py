@@ -81,6 +81,13 @@ class Database:
             project_id,
         )
 
+        await self.execute(
+            """
+                DELETE FROM tasks WHERE project_id = ?;
+                """,
+            project_id,
+        )
+
     # List all existing projects
     async def list_all_projects(self) -> List[Project]:
         data = await self.fetchall(
@@ -137,3 +144,29 @@ class Database:
             )
             for task in data
         ]
+
+    # Delete task
+    async def delete_task(self, task_id: int) -> None:
+        await self.execute(
+            """
+                DELETE FROM tasks WHERE id = ?;
+                """,
+            task_id,
+        )
+
+    # Edit task
+    # TODO: Fix this
+    async def edit_task(self, task_id: int, **kwargs) -> None:
+        await self.execute(
+            """
+                UPDATE tasks SET title = ?, description = ?, deadline = ?, status = ?, domain = ?, assignee = ?
+                WHERE id = ?;
+                """,
+            kwargs["title"],
+            kwargs["description"],
+            kwargs["deadline"].timestamp(),
+            kwargs["status"],
+            kwargs["domain"],
+            kwargs["assignee"],
+            task_id,
+        )
