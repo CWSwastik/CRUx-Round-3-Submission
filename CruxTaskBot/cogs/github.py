@@ -8,6 +8,9 @@ from typing import List, Optional
 
 
 class Github(commands.Cog):
+    def __init__(self, bot: commands.Bot) -> None:
+        self.bot = bot
+
     # TODO: Imporve display of activity
     @app_commands.command(
         name="github_activity",

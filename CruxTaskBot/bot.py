@@ -20,7 +20,7 @@ else:
 
 class Config:
     def __init__(self):
-        self.bot_token = os.environ["TOKEN"]
+        self.bot_token = os.environ["DISCORD_TOKEN"]
         self.bot_prefix = os.environ.get("PREFIX", ["t!"])
 
 
