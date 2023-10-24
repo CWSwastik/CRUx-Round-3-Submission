@@ -36,7 +36,7 @@ class Profile(commands.Cog):
         )
 
         if await self.bot.db.fetch_user(interaction.user.id):
-            await self.bot.db.update_user(user)
+            await self.bot.db.edit_user(user)
         else:
             await self.bot.db.create_user(user)
 
