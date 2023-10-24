@@ -53,6 +53,13 @@ class Projects(commands.Cog):
             "Active projects:" + ", ".join(projects)
         )
 
+    # TODO: Show all projects to senate, for normal members only show their projects
+    async def project_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ):
+        projects = await self.bot.db.list_all_projects()
+        return [app_commands.Choice(name=p.title, value=str(p.id)) for p in projects]
+
     # create task command
     @app_commands.command(
         name="create_task",
@@ -61,17 +68,20 @@ class Projects(commands.Cog):
     @app_commands.describe(
         title="Task title",
         description="The description for this task",
-        project_id="The project id for this task",  # TODO: Make this a dropdown
+        project="The project for this task",
         deadline="The deadline for this task",  # TODO: Parse this into a datetime object
         domain="The domain for this task",
         assignee="The assignee for this task",
+    )
+    @app_commands.autocomplete(
+        project=project_autocomplete,
     )
     async def create_task(
         self,
         interaction: discord.Interaction,
         title: str,
         description: str,
-        project_id: int,
+        project: int,
         deadline: int,
         domain: str,
         assignee: discord.Member,
@@ -79,7 +89,7 @@ class Projects(commands.Cog):
         task = Task(
             title=title,
             description=description,
-            project_id=project_id,
+            project_id=project,
             deadline=datetime.datetime.fromtimestamp(deadline),
             status="Assigned",
             domain=domain,
@@ -95,10 +105,13 @@ class Projects(commands.Cog):
         description="View all tasks!",
     )
     @app_commands.describe(
-        project_id="The project id for this task",
+        project="The project to view all tasks for.",
     )
-    async def view_tasks(self, interaction: discord.Interaction, project_id: int):
-        tasks = await self.bot.db.list_project_tasks(project_id)
+    @app_commands.autocomplete(
+        project=project_autocomplete,
+    )
+    async def view_tasks(self, interaction: discord.Interaction, project: int):
+        tasks = await self.bot.db.list_project_tasks(project)
         final_response = self.create_task_list(tasks, interaction.guild)
         await interaction.response.send_message(final_response)
 
@@ -120,13 +133,14 @@ class Projects(commands.Cog):
         response_message = []
 
         for domain, members in organized_tasks.items():
-            response_message.append(f"## {domain}")
+            response_message.append(f"## __{domain}__")
             for member, member_tasks in members.items():
-                response_message.append(f"**{member}**")
+                response_message.append(f"> **{member}**")
                 for task in member_tasks:
                     response_message.append(
-                        f"- {task.title} - {task.deadline} - {task.status}"
+                        f"> - {task.title} - {task.deadline} - {task.status}"
                     )
+                response_message.append("")
 
         final_response = "\n".join(response_message)
         return final_response
