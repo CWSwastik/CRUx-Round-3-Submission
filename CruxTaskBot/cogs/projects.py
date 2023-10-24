@@ -61,26 +61,39 @@ class Projects(commands.Cog):
         )
         await self.bot.db.create_project(project)
         await interaction.response.send_message(
-            f"Project {title} created. The {role.mention} role and {channel.mention} channel will be used for this project."
+            f"Project `{title}` created. The {role.mention} role and {channel.mention} channel will be used for this project."
         )
 
     @app_commands.command(
-        name="view_projects",
-        description="View all projects!",
+        name="view-projects",
+        description="View the active projects!",
     )
     async def view_projects(self, interaction: discord.Interaction):
+        """
+        This command allows users to view a list of active projects.
+        """
         projects = await self.bot.db.list_all_projects()
-        projects = [p.title for p in projects]
-        await interaction.response.send_message(
-            "Active projects:" + ", ".join(projects)
-        )
+        embed = discord.Embed(title="Active Projects", color=discord.Color.random())
+        embed.description = ""
+        for p in projects:
+            embed.description += f"[{p.title}]({p.github_url}) - {p.description}\n"
 
-    # TODO: Show all projects to senate, for normal members only show their projects
+        await interaction.response.send_message(embed=embed)
+
     async def project_autocomplete(
         self, interaction: discord.Interaction, current: str
     ):
         projects = await self.bot.db.list_all_projects()
-        return [app_commands.Choice(name=p.title, value=str(p.id)) for p in projects]
+        if "Senate" in [r.name for r in interaction.user.roles]:
+            return [
+                app_commands.Choice(name=p.title, value=str(p.id)) for p in projects
+            ]
+        else:
+            return [
+                app_commands.Choice(name=p.title, value=str(p.id))
+                for p in projects
+                if p.role in [r.id for r in interaction.user.roles]
+            ]
 
     # create task command
     @app_commands.command(
