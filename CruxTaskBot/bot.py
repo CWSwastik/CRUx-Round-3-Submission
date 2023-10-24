@@ -22,6 +22,10 @@ class Config:
     def __init__(self):
         self.bot_token = os.environ["DISCORD_TOKEN"]
         self.bot_prefix = os.environ.get("PREFIX", ["t!"])
+        self.email_id = os.environ["EMAIL_ID"]
+        self.email_password = os.environ["EMAIL_PASSWORD"]
+        self.smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+        self.smtp_port = os.environ.get("SMTP_PORT", 587)
 
 
 class CruxTaskBot(commands.Bot):
