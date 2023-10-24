@@ -142,13 +142,13 @@ class Projects(commands.Cog):
         try:
             deadline_datetime = date_parser.parse(deadline)
         except ValueError:
-            await interaction.response.send_message(
+            return await interaction.response.send_message(
                 "Invalid 'deadline' format. Please enter a valid date and time.",
                 ephemeral=True,
             )
 
-        project = await self.bot.db.fetch_project(project)
-        if project is None:
+        project_obj = await self.bot.db.fetch_project(project)
+        if project_obj is None:
             await interaction.response.send_message(
                 f"Project `{project}` not found.",
                 ephemeral=True,
@@ -158,7 +158,7 @@ class Projects(commands.Cog):
         task = Task(
             title=title,
             description=description,
-            project_id=project.id,
+            project_id=project_obj.id,
             deadline=deadline_datetime,
             status="Assigned",
             domain=domain.value,
@@ -166,7 +166,7 @@ class Projects(commands.Cog):
         )
         await self.bot.db.create_task(task)
         await interaction.response.send_message(
-            f"Task `{title}` under `({domain.value}, {project.title})` created and assigned to {assignee.mention} with deadline: <t:{deadline_datetime.timestamp():.0f}>."
+            f"Task `{title}` under `{project_obj.title}:{domain.value}` created and assigned to {assignee.mention} with deadline: <t:{deadline_datetime.timestamp():.0f}>."
         )
 
     # View tasks command
