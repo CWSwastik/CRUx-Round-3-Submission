@@ -191,7 +191,7 @@ class Projects(commands.Cog):
                 ephemeral=True,
             )
             return
-        final_response = self.create_task_list(tasks)
+        final_response = f"# {project}\n" + self.create_task_list(tasks)
         await interaction.response.send_message(
             final_response, allowed_mentions=discord.AllowedMentions.none()
         )
@@ -237,8 +237,10 @@ class Projects(commands.Cog):
         for project in projects:
             tasks = await self.bot.db.list_project_tasks(project.id)
             channel = self.bot.get_channel(project.channel)
-            final_response = self.create_task_list(tasks)
-            await channel.send(final_response)
+            final_response = f"# {project.title}\n" + self.create_task_list(tasks)
+            await channel.send(
+                final_response, allowed_mentions=discord.AllowedMentions.none()
+            )
 
     # On ready, check how long it is from midnight and sleep until then
     # when its midnight ruun the send_task_list_for_every_project function
