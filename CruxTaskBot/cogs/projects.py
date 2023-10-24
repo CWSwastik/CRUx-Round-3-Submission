@@ -120,12 +120,12 @@ class Projects(commands.Cog):
         response_message = []
 
         for domain, members in organized_tasks.items():
-            response_message.append(f"{domain}")
+            response_message.append(f"## {domain}")
             for member, member_tasks in members.items():
-                response_message.append(f"    {member}")
+                response_message.append(f"**{member}**")
                 for task in member_tasks:
                     response_message.append(
-                        f"        {task.id}. {task.title} - {task.deadline} - {task.status}"
+                        f"- {task.title} - {task.deadline} - {task.status}"
                     )
 
         final_response = "\n".join(response_message)
