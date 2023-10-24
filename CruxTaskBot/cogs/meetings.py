@@ -1,3 +1,4 @@
+import datetime
 import discord
 import asyncio
 import traceback
@@ -30,9 +31,11 @@ class createMeeting(discord.ui.Modal, title="Create Meeting"):
         self.channel = channel
 
     async def on_submit(self, interaction: discord.Interaction):
+        time_to_sleep = parse_time_to_seconds(self.duration.value)
+
         embed = discord.Embed(
             title=f"{self.agenda.value} Meet",
-            description="Please vote for the time you'd like this meeting to be held at.\n\n",
+            description=f"Please vote for the time you'd like this meeting to be held at.\nThe voting ends <t:{(datetime.datetime.now() + datetime.timedelta(seconds=time_to_sleep)).timestamp():.0f}:R>\n\n",  # TODO: figure out why time_to_sleep is not synced
             color=discord.Color.random(),
         )
 
@@ -61,7 +64,6 @@ class createMeeting(discord.ui.Modal, title="Create Meeting"):
             emoji = chr(0x1F1E6 + i)
             await sent_message.add_reaction(emoji)
 
-        time_to_sleep = parse_time_to_seconds(self.duration.value)
         await asyncio.sleep(time_to_sleep)  # TODO: Improve this, use database
 
         sent_message = await self.channel.fetch_message(sent_message.id)
