@@ -3,3 +3,4 @@ python-dotenv
 jishaku
 colorama
 aiosqlite
+python-dateutil

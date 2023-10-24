@@ -1,3 +1,4 @@
+import enum
 import asyncio
 import datetime
 import discord
@@ -6,6 +7,21 @@ from discord import app_commands
 from utils import is_valid_github_repo_url
 from utils.models import Project, Task
 from typing import List, Optional
+from dateutil import parser as date_parser
+
+
+class Domains(enum.Enum):
+    Frontend = "Frontend"
+    Backend = "Backend"
+    Database = "Database"
+    Web = "Web"
+    App = "App"
+    Automation = "Automation"
+    Design = "Design"
+    Video = "Video"
+    Audio = "Audio"
+    Art = "Art"
+    Other = "Other"
 
 
 # TODO: Permissions check
@@ -97,15 +113,15 @@ class Projects(commands.Cog):
 
     # create task command
     @app_commands.command(
-        name="create_task",
-        description="Create a task!",
+        name="create-task",
+        description="Create a task under a project and domain!",
     )
     @app_commands.describe(
         title="Task title",
         description="The description for this task",
         project="The project for this task",
-        deadline="The deadline for this task",  # TODO: Parse this into a datetime object
         domain="The domain for this task",
+        deadline="The deadline for this task",
         assignee="The assignee for this task",
     )
     @app_commands.autocomplete(
@@ -117,45 +133,65 @@ class Projects(commands.Cog):
         title: str,
         description: str,
         project: int,
-        deadline: int,
-        domain: str,
+        domain: Domains,
+        deadline: str,
         assignee: discord.Member,
     ):
+        """
+        This command creates a task under a given project and domain.
+        """
+        print("Hi")
+        try:
+            deadline_datetime = date_parser.parse(deadline)
+        except ValueError:
+            await interaction.response.send_message(
+                "Invalid 'deadline' format. Please enter a valid date and time.",
+                ephemeral=True,
+            )
         task = Task(
             title=title,
             description=description,
             project_id=project,
-            deadline=datetime.datetime.fromtimestamp(deadline),
+            deadline=deadline_datetime,
             status="Assigned",
-            domain=domain,
+            domain=domain.value,
             assignee=assignee.id,
         )
         await self.bot.db.create_task(task)
-        await interaction.response.send_message("Task created.")
+        await interaction.response.send_message(
+            f"Task `{title}` under domain `{domain.value}` created and assigned to {assignee.mention} with deadline: <t:{deadline_datetime.timestamp():.0f}>."
+        )
 
     # View tasks command
-    # TODO: Beautify this
     @app_commands.command(
-        name="view_tasks",
-        description="View all tasks!",
+        name="view-task-list",
+        description="View the task list for a project!",
     )
     @app_commands.describe(
-        project="The project to view all tasks for.",
+        project="The project to view the task list for.",
     )
     @app_commands.autocomplete(
         project=project_autocomplete,
     )
-    async def view_tasks(self, interaction: discord.Interaction, project: int):
+    async def view_task_list(self, interaction: discord.Interaction, project: int):
+        """
+        This command displays the task list for a given project.
+        """
         tasks = await self.bot.db.list_project_tasks(project)
-        final_response = self.create_task_list(tasks, interaction.guild)
-        await interaction.response.send_message(final_response)
+        final_response = self.create_task_list(tasks)
+        await interaction.response.send_message(
+            final_response, allowed_mentions=discord.AllowedMentions.none()
+        )
 
-    def create_task_list(self, tasks: List[Task], guild: discord.Guild) -> str:
+    def create_task_list(self, tasks: List[Task]) -> str:
+        """
+        Create an organized task list for display based on provided tasks.
+        """
         organized_tasks = {}
 
         for task in tasks:
             domain_name = task.domain
-            member_name = guild.get_member(task.assignee).display_name
+            member_name = f"<@{task.assignee}>"
 
             if domain_name not in organized_tasks:
                 organized_tasks[domain_name] = {}
@@ -173,20 +209,22 @@ class Projects(commands.Cog):
                 response_message.append(f"> **{member}**")
                 for task in member_tasks:
                     response_message.append(
-                        f"> - {task.title} - {task.deadline} - {task.status}"
+                        f"> - {task.title} - <t:{task.deadline.timestamp():.0f}> - {task.status}"
                     )
                 response_message.append("")
 
         final_response = "\n".join(response_message)
         return final_response
 
-    # Send task list for every project to its channel
     async def send_task_list_for_every_project(self):
+        """
+        Send task list for every project to its channel.
+        """
         projects = await self.bot.db.list_all_projects()
         for project in projects:
             tasks = await self.bot.db.list_project_tasks(project.id)
             channel = self.bot.get_channel(project.channel)
-            final_response = self.create_task_list(tasks, channel.guild)
+            final_response = self.create_task_list(tasks)
             await channel.send(final_response)
 
     # On ready, check how long it is from midnight and sleep until then
