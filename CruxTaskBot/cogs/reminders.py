@@ -43,6 +43,7 @@ class Reminders(commands.Cog):
                     ):
                         user = await self.bot.db.fetch_user(task.assignee)
                         if user:
+                            # TODO: send better email
                             await self.send_mail(
                                 user.email,
                                 "Deadline Reminder",
@@ -50,8 +51,6 @@ class Reminders(commands.Cog):
                             )
 
                             await self.bot.db.set_task_reminder(task.id, None)
-
-                            print(f"EMAIL SENT TO {user.email}")
 
             await asyncio.sleep(60 * 60)
 

@@ -202,6 +202,17 @@ class Projects(commands.Cog):
         """
         This command displays the task list for a given project.
         """
+
+        project_obj = await self.bot.db.fetch_project(project)
+        if project_obj.role not in [
+            r.id for r in interaction.user.roles
+        ] and "Senate" not in [r.name for r in interaction.user.roles]:
+            await interaction.response.send_message(
+                f"You don't have permission to view tasks under `{project}`.",
+                ephemeral=True,
+            )
+            return
+
         tasks = await self.bot.db.list_project_tasks(project_title=project)
         if not tasks:
             await interaction.response.send_message(
