@@ -8,6 +8,7 @@ from utils import is_valid_github_repo_url
 from utils.models import Project, Task
 from typing import List, Optional
 from dateutil import parser as date_parser
+from utils import parse_time_to_seconds
 
 
 class Domains(enum.Enum):
@@ -121,6 +122,7 @@ class Projects(commands.Cog):
         domain="The domain for this task",
         deadline="The deadline for this task",
         assignee="The assignee for this task",
+        reminder="How long before the deadline to send a reminder for this task",
     )
     @app_commands.autocomplete(
         project=project_autocomplete,
@@ -134,6 +136,7 @@ class Projects(commands.Cog):
         domain: Domains,
         deadline: str,
         assignee: discord.Member,
+        reminder: Optional[str] = None,
     ):
         """
         This command creates a task under a given project and domain.
@@ -147,10 +150,24 @@ class Projects(commands.Cog):
                 ephemeral=True,
             )
 
+        if reminder is not None:
+            reminder = parse_time_to_seconds(reminder)
+        else:
+            reminder = 2 * 24 * 60 * 60  # 2 Days
+
         project_obj = await self.bot.db.fetch_project(project)
         if project_obj is None:
             await interaction.response.send_message(
                 f"Project `{project}` not found.",
+                ephemeral=True,
+            )
+            return
+
+        if project_obj.role not in [
+            r.id for r in interaction.user.roles
+        ] and "Senate" not in [r.name for r in interaction.user.roles]:
+            await interaction.response.send_message(
+                f"You don't have permission to create tasks under `{project}`.",
                 ephemeral=True,
             )
             return
@@ -163,6 +180,7 @@ class Projects(commands.Cog):
             status="Assigned",
             domain=domain.value,
             assignee=assignee.id,
+            reminder=reminder,
         )
         await self.bot.db.create_task(task)
         await interaction.response.send_message(

@@ -12,6 +12,7 @@ class Task:
     status: str
     domain: str
     assignee: int
+    reminder: Optional[int] = None  # No of seconds before deadline to send reminder
     id: Optional[int] = None
 
 

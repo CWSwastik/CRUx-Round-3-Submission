@@ -37,7 +37,8 @@ class Database:
                     deadline BIGINT NOT NULL,
                     status TEXT NOT NULL,
                     domain TEXT NOT NULL,
-                    assignee BIGINT NOT NULL
+                    assignee BIGINT NOT NULL,
+                    reminder BIGINT
                 );
             """
             )
@@ -137,8 +138,8 @@ class Database:
     async def create_task(self, task: Task) -> None:
         await self.execute(
             """
-                INSERT INTO tasks (title, description, project_id, deadline, status, domain, assignee)
-                VALUES (?, ?, ?, ?, ?, ?, ?);
+                INSERT INTO tasks (title, description, project_id, deadline, status, domain, assignee, reminder)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?);
                 """,
             task.title,
             task.description,
@@ -147,6 +148,7 @@ class Database:
             task.status,
             task.domain,
             task.assignee,
+            task.reminder,
         )
 
     # List all tasks associated with a particular project
@@ -182,6 +184,7 @@ class Database:
                 status=task[5],
                 domain=task[6],
                 assignee=task[7],
+                reminder=task[8],
             )
             for task in data
         ]
@@ -209,6 +212,17 @@ class Database:
             kwargs["status"],
             kwargs["domain"],
             kwargs["assignee"],
+            task_id,
+        )
+
+    # Set task reminder
+    async def set_task_reminder(self, task_id: int, reminder: Optional[int]) -> None:
+        await self.execute(
+            """
+                UPDATE tasks SET reminder = ?
+                WHERE id = ?;
+                """,
+            reminder,
             task_id,
         )
 
