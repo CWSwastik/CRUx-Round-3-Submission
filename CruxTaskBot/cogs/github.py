@@ -18,11 +18,37 @@ class Github(commands.Cog):
     )
     @app_commands.describe(
         github_username="The GitHub username to view activity for",
+        member="The user to view activity for",
     )
     async def github_activity(
-        self, interaction: discord.Interaction, github_username: str
+        self,
+        interaction: discord.Interaction,
+        github_username: Optional[str],
+        member: Optional[discord.Member],
     ):
-        # Construct the GitHub API URL for the user's activities
+        if github_username is not None:
+            pass
+        elif member is not None:
+            user = await self.bot.db.fetch_user(member.id)
+            if user:
+                github_username = user.github
+            else:
+                await interaction.response.send_message(
+                    f"{member.mention} has not set their GitHub username yet. Please use `/github_activity <their_github_username>` to view activity for this user.",
+                    ephemeral=True,
+                )
+                return
+        else:
+            user = await self.bot.db.fetch_user(interaction.user.id)
+            if user:
+                github_username = user.github
+            else:
+                await interaction.response.send_message(
+                    f"You have not set your GitHub username yet. Please use `/github_activity <your_github_username>` to view your activity.",
+                    ephemeral=True,
+                )
+                return
+
         github_api_url = f"https://api.github.com/users/{github_username}/events"
 
         async with aiohttp.ClientSession() as session:
@@ -50,11 +76,11 @@ class Github(commands.Cog):
                             await interaction.response.send_message(activity_message)
                         else:
                             await interaction.response.send_message(
-                                "No recent GitHub activity found for this user."
+                                f"No recent GitHub activity found for `{github_username}`."
                             )
                     else:
                         await interaction.response.send_message(
-                            "No data found for this user."
+                            f"No data found for `{github_username}`."
                         )
                 else:
                     await interaction.response.send_message(

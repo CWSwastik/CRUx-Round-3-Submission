@@ -1,7 +1,7 @@
 import datetime
 import aiosqlite
 from typing import List, Optional
-from .models import Project, Task
+from .models import Project, Task, User
 
 
 class Database:
@@ -38,6 +38,16 @@ class Database:
                     status TEXT NOT NULL,
                     domain TEXT NOT NULL,
                     assignee BIGINT NOT NULL
+                );
+            """
+            )
+
+            await conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    id BIGINT PRIMARY KEY NOT NULL,
+                    github TEXT,
+                    email TEXT
                 );
             """
             )
@@ -200,4 +210,44 @@ class Database:
             kwargs["domain"],
             kwargs["assignee"],
             task_id,
+        )
+
+    # Fetch user using their id
+    async def fetch_user(self, user_id: int) -> Optional[User]:
+        data = await self.fetchone(
+            "SELECT * FROM users WHERE id = ?;",
+            user_id,
+        )
+
+        if data is None:
+            return None
+
+        return User(
+            id=data[0],
+            github=data[1],
+            email=data[2],
+        )
+
+    # Create user
+    async def create_user(self, user: User) -> None:
+        await self.execute(
+            """
+                INSERT INTO users (id, github, email)
+                VALUES (?, ?, ?);
+                """,
+            user.id,
+            user.github,
+            user.email,
+        )
+
+    # Edit user
+    async def edit_user(self, user: User, **kwargs) -> None:
+        await self.execute(
+            """
+                UPDATE users SET github = ?, email = ?
+                WHERE id = ?;
+                """,
+            kwargs.get("github", user.github),
+            kwargs.get("email", user.email),
+            user.id,
         )

@@ -23,3 +23,10 @@ class Project:
     github_url: str
     description: str
     id: Optional[int] = None
+
+
+@dataclass
+class User:
+    id: int
+    github: Optional[str]
+    email: Optional[str]
