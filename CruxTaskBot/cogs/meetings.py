@@ -4,6 +4,7 @@ import traceback
 from discord.ext import commands
 from discord import app_commands
 from typing import Optional
+from utils import parse_time_to_seconds
 
 
 class createMeeting(discord.ui.Modal, title="Create Meeting"):
@@ -21,7 +22,7 @@ class createMeeting(discord.ui.Modal, title="Create Meeting"):
 
     duration = discord.ui.TextInput(
         label="Vote Duration",
-        placeholder="How long should the voting last for (in seconds)...",
+        placeholder="How long should the voting last for (eg. 2d, 6h, 30mins etc)",
     )
 
     def __init__(self, *, channel: discord.TextChannel, **kwargs) -> None:
@@ -47,10 +48,11 @@ class createMeeting(discord.ui.Modal, title="Create Meeting"):
             emoji = chr(0x1F1E6 + i)  # Emoji for voting options (A, B, C, ...)
             embed.description += f"{emoji} {option}\n"
 
+        # TODO: Add project role pinging
         sent_message = await self.channel.send("@everyone", embed=embed)
 
         await interaction.response.send_message(
-            f"The message has been sent to {self.channel.mention}!",
+            f"The voting has begun in {self.channel.mention}!",
             ephemeral=True,
         )
 
@@ -59,7 +61,7 @@ class createMeeting(discord.ui.Modal, title="Create Meeting"):
             emoji = chr(0x1F1E6 + i)
             await sent_message.add_reaction(emoji)
 
-        time_to_sleep = int(self.duration.value)  # Improve parsing of this duration
+        time_to_sleep = parse_time_to_seconds(self.duration.value)
         await asyncio.sleep(time_to_sleep)  # TODO: Improve this, use database
 
         sent_message = await self.channel.fetch_message(sent_message.id)
