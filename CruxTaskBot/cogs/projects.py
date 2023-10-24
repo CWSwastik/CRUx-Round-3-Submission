@@ -101,12 +101,10 @@ class Projects(commands.Cog):
     ):
         projects = await self.bot.db.list_all_projects()
         if "Senate" in [r.name for r in interaction.user.roles]:
-            return [
-                app_commands.Choice(name=p.title, value=str(p.id)) for p in projects
-            ]
+            return [app_commands.Choice(name=p.title, value=p.title) for p in projects]
         else:
             return [
-                app_commands.Choice(name=p.title, value=str(p.id))
+                app_commands.Choice(name=p.title, value=p.title)
                 for p in projects
                 if p.role in [r.id for r in interaction.user.roles]
             ]
@@ -132,7 +130,7 @@ class Projects(commands.Cog):
         interaction: discord.Interaction,
         title: str,
         description: str,
-        project: int,
+        project: str,
         domain: Domains,
         deadline: str,
         assignee: discord.Member,
@@ -140,7 +138,7 @@ class Projects(commands.Cog):
         """
         This command creates a task under a given project and domain.
         """
-        print("Hi")
+
         try:
             deadline_datetime = date_parser.parse(deadline)
         except ValueError:
@@ -148,10 +146,19 @@ class Projects(commands.Cog):
                 "Invalid 'deadline' format. Please enter a valid date and time.",
                 ephemeral=True,
             )
+
+        project = await self.bot.db.fetch_project(project)
+        if project is None:
+            await interaction.response.send_message(
+                f"Project `{project}` not found.",
+                ephemeral=True,
+            )
+            return
+
         task = Task(
             title=title,
             description=description,
-            project_id=project,
+            project_id=project.id,
             deadline=deadline_datetime,
             status="Assigned",
             domain=domain.value,
@@ -159,7 +166,7 @@ class Projects(commands.Cog):
         )
         await self.bot.db.create_task(task)
         await interaction.response.send_message(
-            f"Task `{title}` under domain `{domain.value}` created and assigned to {assignee.mention} with deadline: <t:{deadline_datetime.timestamp():.0f}>."
+            f"Task `{title}` under `({domain.value}, {project.title})` created and assigned to {assignee.mention} with deadline: <t:{deadline_datetime.timestamp():.0f}>."
         )
 
     # View tasks command
@@ -173,11 +180,17 @@ class Projects(commands.Cog):
     @app_commands.autocomplete(
         project=project_autocomplete,
     )
-    async def view_task_list(self, interaction: discord.Interaction, project: int):
+    async def view_task_list(self, interaction: discord.Interaction, project: str):
         """
         This command displays the task list for a given project.
         """
-        tasks = await self.bot.db.list_project_tasks(project)
+        tasks = await self.bot.db.list_project_tasks(project_title=project)
+        if not tasks:
+            await interaction.response.send_message(
+                f"No tasks found for project `{project}`.",
+                ephemeral=True,
+            )
+            return
         final_response = self.create_task_list(tasks)
         await interaction.response.send_message(
             final_response, allowed_mentions=discord.AllowedMentions.none()

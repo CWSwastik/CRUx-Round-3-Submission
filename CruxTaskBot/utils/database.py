@@ -1,7 +1,7 @@
-import aiosqlite
-from .models import Project, Task
-from typing import List
 import datetime
+import aiosqlite
+from typing import List, Optional
+from .models import Project, Task
 
 
 class Database:
@@ -88,13 +88,29 @@ class Database:
             project_id,
         )
 
+    # Fetch project using its name
+    async def fetch_project(self, project_name: str) -> Optional[Project]:
+        data = await self.fetchone(
+            "SELECT * FROM projects WHERE title = ?;",
+            project_name,
+        )
+
+        if data is None:
+            return None
+
+        return Project(
+            id=data[0],
+            title=data[1],
+            role=data[2],
+            channel=data[3],
+            github_url=data[4],
+            description=data[5],
+        )
+
     # List all existing projects
     async def list_all_projects(self) -> List[Project]:
-        data = await self.fetchall(
-            """
-                SELECT * FROM projects;
-                """
-        )
+        data = await self.fetchall("SELECT * FROM projects;")
+
         return [
             Project(
                 id=project[0],
@@ -124,13 +140,28 @@ class Database:
         )
 
     # List all tasks associated with a particular project
-    async def list_project_tasks(self, project_id: int) -> List[Task]:
-        data = await self.fetchall(
-            """
-                SELECT * FROM tasks WHERE project_id = ?;
-                """,
-            project_id,
-        )
+    async def list_project_tasks(
+        self, project_id: Optional[int] = None, project_title: Optional[str] = None
+    ) -> List[Task]:
+        if project_id is not None:
+            data = await self.fetchall(
+                """
+                    SELECT * FROM tasks WHERE project_id = ?;
+                    """,
+                project_id,
+            )
+        elif project_title is not None:
+            data = await self.fetchall(
+                """
+                    SELECT * FROM tasks WHERE project_id = (
+                        SELECT id FROM projects WHERE title = ?
+                    );
+                    """,
+                project_title,
+            )
+        else:
+            return []
+
         return [
             Task(
                 id=task[0],
