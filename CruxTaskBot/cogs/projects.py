@@ -3,6 +3,7 @@ import datetime
 import discord
 from discord.ext import commands
 from discord import app_commands
+from utils import is_valid_github_repo_url
 from utils.models import Project, Task
 from typing import List, Optional
 
@@ -13,25 +14,44 @@ class Projects(commands.Cog):
         self.bot = bot
 
     @app_commands.command(
-        name="create_project",
-        description="Create a project!",
+        name="create-project",
+        description="Create a new project!",
     )
     @app_commands.describe(
         title="Project title",
+        description="The description for this project",
         role="The role that will be pinged for this project",
         channel="The channel that will be used for this project",
-        github_url="The github url for this project",
-        description="The description for this project",
+        github_url="The github repo url for this project",
     )
+    @app_commands.checks.has_role("Senate")
     async def create_project(
         self,
         interaction: discord.Interaction,
         title: str,
         description: str,
-        role: discord.Role,
-        channel: discord.TextChannel,
         github_url: str,
+        role: Optional[discord.Role],
+        channel: Optional[discord.TextChannel],
     ):
+        """
+        This command allows users with the 'Senate' role to create a project.
+        If the 'role' and 'channel' are not provided, this command creates them.
+        The project details are stored in a database.
+        """
+
+        if not is_valid_github_repo_url(github_url):
+            await interaction.response.send_message(
+                "Please enter a valid GitHub repository URL.",
+                ephemeral=True,
+            )
+            return
+
+        if role is None:
+            role = await interaction.guild.create_role(name=title)
+        if channel is None:
+            channel = await interaction.guild.create_text_channel(name=title)
+
         project = Project(
             title=title,
             role=role.id,
@@ -40,7 +60,9 @@ class Projects(commands.Cog):
             description=description,
         )
         await self.bot.db.create_project(project)
-        await interaction.response.send_message("Project created.")
+        await interaction.response.send_message(
+            f"Project {title} created. The {role.mention} role and {channel.mention} channel will be used for this project."
+        )
 
     @app_commands.command(
         name="view_projects",

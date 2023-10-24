@@ -2,7 +2,7 @@ import os
 import time
 
 import discord
-from discord import Intents
+from discord import Intents, app_commands
 from discord.ext import commands
 
 import platform
@@ -46,6 +46,8 @@ class CruxTaskBot(commands.Bot):
             ),
         )
 
+        self.tree.on_error = self.on_tree_error
+
     async def setup_hook(self) -> None:
         for file in os.listdir("cogs"):
             if file.endswith(".py") and not file.startswith("_"):
@@ -77,3 +79,23 @@ class CruxTaskBot(commands.Bot):
 
     async def run_async(self, func, *args, **kwargs):
         return await self.loop.run_in_executor(None, func, *args, **kwargs)
+
+    async def on_tree_error(
+        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+    ):
+        if isinstance(error, app_commands.CommandOnCooldown):
+            return await interaction.response.send_message(
+                f"Command is currently on cooldown! Try again in **{error.retry_after:.2f}** seconds!",
+                ephemeral=True,
+            )
+        elif isinstance(error, app_commands.MissingPermissions):
+            return await interaction.response.send_message(
+                f"You're missing permissions to use this command!", ephemeral=True
+            )
+        elif isinstance(error, app_commands.MissingRole):
+            return await interaction.response.send_message(
+                f"To use this command you need the {error.missing_role} role!",
+                ephemeral=True,
+            )
+        else:
+            raise error

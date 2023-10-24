@@ -46,3 +46,21 @@ def parse_time_to_seconds(time_str):
     total_seconds = days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds
 
     return total_seconds
+
+
+def is_valid_github_repo_url(url):
+    """
+    Checks if a given URL is a valid GitHub repository URL.
+
+    Args:
+        url (str): The URL to check.
+
+    Returns:
+        bool: True if the URL is a valid GitHub repository URL, False otherwise.
+    """
+
+    github_repo_pattern = r"^https?://github\.com/[\w-]+/[\w-]+$"
+
+    match = re.match(github_repo_pattern, url)
+
+    return match is not None
