@@ -64,14 +64,14 @@ def create_event(credentials, summary, description, start, end):
     return event.get("htmlLink")
 
 
-class GoogleCalender(commands.Cog):
+class GoogleCalendar(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.creds = get_credentials()
 
     async def task_autocomplete(self, interaction: discord.Interaction, current: str):
         """
-        Autocomplete for the task argument of the add_to_calender command.
+        Autocomplete for the task argument of the add_to_calendar command.
 
         Args:
             interaction (discord.Interaction): The interaction object
@@ -97,18 +97,18 @@ class GoogleCalender(commands.Cog):
         return choices
 
     @app_commands.command(
-        name="add-to-calender",
-        description="Add a task to your calender!",
+        name="add-to-calendar",
+        description="Add a task to your calendar!",
     )
     @app_commands.describe(
-        task="The task to add to your calender",
+        task="The task to add to your calendar",
     )
     @app_commands.autocomplete(
         task=task_autocomplete,
     )
-    async def add_to_calender(self, interaction: discord.Interaction, task: str):
+    async def add_to_calendar(self, interaction: discord.Interaction, task: str):
         """
-        This command allows users to add a task to their google calender.
+        This command allows users to add a task to their google calendar.
         """
 
         tasks = await self.bot.db.list_user_tasks(interaction.user.id)
@@ -141,7 +141,7 @@ class GoogleCalender(commands.Cog):
         )
 
         await interaction.followup.send(
-            f"Task `{task.title}` added to your calender! [Click here](<{event_link}>) to view the event.",
+            f"Task `{task.title}` added to your calendar! [Click here](<{event_link}>) to view the event.",
             ephemeral=True,
         )
 
@@ -149,4 +149,4 @@ class GoogleCalender(commands.Cog):
 
 
 async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(GoogleCalender(bot))
+    await bot.add_cog(GoogleCalendar(bot))
