@@ -59,11 +59,11 @@ class Github(commands.Cog):
                 if response.status == 200:
                     data = await response.json()
                     if data:
-                        # Filter and display pull requests and issues events
                         activity = [
                             event
                             for event in data
-                            if event["type"] in ["PullRequestEvent", "IssuesEvent"]
+                            if event["type"]
+                            in ["PullRequestEvent", "IssuesEvent", "PushEvent"]
                         ]
                         if activity:
                             activity_message = (
@@ -142,7 +142,16 @@ class Github(commands.Cog):
 
             if event_type in ["issues", "pull_request", "push", "ping"]:
                 repository = data["repository"]["full_name"]
-                print("New", event_type, "event for", repository)
+                html_url = data["repository"]["html_url"]
+                projects = await self.bot.db.list_all_projects()
+                project = [p for p in projects if p.github_url == html_url]
+                if project:
+                    project = project[0]
+                    ch = self.bot.get_channel(project.channel)
+                    if not ch:
+                        ch = await self.bot.fetch_channel(project.channel)
+
+                    await ch.send(f"New {event_type} event for {repository}!")
 
             return web.Response(text="OK")
 
