@@ -6,6 +6,7 @@ from discord.ext import commands
 from discord import app_commands
 from utils.models import Project, Task
 from typing import List, Optional
+from aiohttp import web
 from utils import generate_documentation, extract_github_file_content
 
 
@@ -131,6 +132,34 @@ class Github(commands.Cog):
                     "Failed to fetch GitHub file content."
                 )
 
+    async def webserver(self):
+        async def root_handler(request):
+            return web.Response(text="Hello, world")
+
+        async def webhook_handler(request):
+            data = await request.json()
+            event_type = request.headers.get("X-GitHub-Event")
+
+            if event_type in ["issues", "pull_request", "push", "ping"]:
+                repository = data["repository"]["full_name"]
+                print("New", event_type, "event for", repository)
+
+            return web.Response(text="OK")
+
+        app = web.Application()
+        app.router.add_get("/", root_handler)
+        app.router.add_post("/webhook", webhook_handler)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        self.site = web.TCPSite(runner, "localhost", 8080)
+        await self.bot.wait_until_ready()
+        await self.site.start()
+
+    def __unload(self):
+        asyncio.ensure_future(self.site.stop())
+
 
 async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(Github(bot))
+    gh = Github(bot)
+    await bot.add_cog(gh)
+    bot.loop.create_task(gh.webserver())
