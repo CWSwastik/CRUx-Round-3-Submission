@@ -98,11 +98,13 @@ class Github(commands.Cog):
     )
     @app_commands.describe(
         github_file_url="The GitHub URL to create documentation for",
+        automatically_push_to_github="Whether to automatically push the generated documentation to the bot docs branch of the github repo",
     )
     async def generate_docs(
         self,
         interaction: discord.Interaction,
         github_file_url: str,
+        automatically_push_to_github: bool = True,
     ):
         if not github_file_url.startswith(
             "https://raw.githubusercontent.com"
@@ -129,9 +131,65 @@ class Github(commands.Cog):
                     )
                 )
             else:
-                await interaction.response.send_message(
+                return await interaction.response.send_message(
                     "Failed to fetch GitHub file content."
                 )
+
+        if automatically_push_to_github:
+            # check if file is a project repo
+            projects = await self.bot.db.list_all_projects()
+            repository_name = "/".join(urlparse(github_file_url).path.split("/")[1:3])
+            project = [p for p in projects if repository_name in p.github_url]
+            if project:
+                project = project[0]
+                res = await self.create_branch(
+                    project, "bot-docs"
+                )  # TODO: Figure out why forbidden for collaborators
+                print(res)
+                #  await self.push_to_github(
+                #    project, "bot-docs", "Documentation for " + github_file_url
+                # )  # TODO
+
+    async def create_branch(self, project: Project, branch_name: str):
+        repository_path = urlparse(project.github_url).path
+        github_api_url = f"https://api.github.com/repos{repository_path}/branches"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(github_api_url) as response:
+                if response.status != 200:
+                    return (
+                        False,
+                        f"1 {response.status}, {response.reason}, {github_api_url}",
+                    )
+
+                data = await response.json()
+
+                if not data:
+                    return False, "No branches found!"
+
+                branches = [branch["name"] for branch in data]
+                if branch_name not in branches:
+                    github_api_url = (
+                        f"https://api.github.com/repos{repository_path}/git/refs"
+                    )
+                    async with session.post(
+                        github_api_url,
+                        json={
+                            "ref": f"refs/heads/{branch_name}",
+                            "sha": data[0]["commit"]["sha"],
+                        },
+                        headers={
+                            "Authorization": f"token {self.bot.config.github_token}",
+                        },
+                    ) as response:
+                        if response.status == 201:
+                            return True, "Branch created!"
+                        else:
+                            return (
+                                False,
+                                f"2 {response.status}, {response.reason}, {github_api_url}",
+                            )
+                else:
+                    return True, "Branch already exists!"
 
     async def project_autocomplete(
         self, interaction: discord.Interaction, current: str
