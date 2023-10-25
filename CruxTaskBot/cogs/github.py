@@ -2,11 +2,12 @@ import asyncio
 import aiohttp
 import discord
 from io import StringIO
+from aiohttp import web
 from discord.ext import commands
 from discord import app_commands
 from utils.models import Project, Task
 from typing import List, Optional
-from aiohttp import web
+from urllib.parse import urlparse
 from utils import generate_documentation, extract_github_file_content
 
 
@@ -132,6 +133,84 @@ class Github(commands.Cog):
                     "Failed to fetch GitHub file content."
                 )
 
+    async def project_autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ):
+        projects = await self.bot.db.list_all_projects()
+        return [
+            app_commands.Choice(
+                name=project.title,
+                value=project.title,
+            )
+            for project in projects
+            if current in project.title
+        ]
+
+    @app_commands.command(
+        name="track_project",
+        description="Track a GitHub repository!",
+    )
+    @app_commands.describe(project="The Project to setup tracking for")
+    @app_commands.autocomplete(
+        project=project_autocomplete,
+    )
+    @app_commands.checks.has_role("Senate")
+    async def track_project(
+        self,
+        interaction: discord.Interaction,
+        project: str,
+    ):
+        """
+        This command sets up tracking the GitHub repository of a project.
+        """
+
+        projects = await self.bot.db.list_all_projects()
+        matching_projects = [p for p in projects if p.title == project]
+        if matching_projects:
+            project = matching_projects[0]
+            await interaction.response.defer()
+            res = await self.setup_webhook_for_project(project)
+            if res[0]:
+                await interaction.followup.send(
+                    f"Tracking setup for {project.title} with id={res[1]}!"
+                )
+            else:
+                await interaction.followup.send(
+                    f"Failed to setup tracking for {project.title}, response={res[1]} {res[2]}!"
+                )
+        else:
+            await interaction.response.send_message(
+                f"Project with title {project} not found!"
+            )
+
+    async def setup_webhook_for_project(self, project: Project):
+        repository_path = urlparse(project.github_url).path
+        github_api_url = f"https://api.github.com/repos{repository_path}/hooks"
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                github_api_url,
+                json={
+                    "name": "web",
+                    "active": True,
+                    "events": ["issues", "pull_request", "push", "ping"],
+                    "config": {
+                        "url": self.bot.config.webhook_url,
+                        "content_type": "json",
+                    },
+                },
+                headers={
+                    "Authorization": f"token {self.bot.config.github_token}",
+                },
+            ) as response:
+                if response.status == 201:
+                    data = await response.json()
+                    webhook_id = data["id"]
+                    # TODO: Store this in database
+                    return True, webhook_id
+                else:
+                    return False, response.status, response.reason
+
     async def webserver(self):
         async def root_handler(request):
             return web.Response(text="Hello, world")
@@ -151,6 +230,7 @@ class Github(commands.Cog):
                     if not ch:
                         ch = await self.bot.fetch_channel(project.channel)
 
+                    # TODO: send a proper embed with more information
                     await ch.send(f"New {event_type} event for {repository}!")
 
             return web.Response(text="OK")

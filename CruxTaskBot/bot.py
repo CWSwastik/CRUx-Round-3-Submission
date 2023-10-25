@@ -28,6 +28,9 @@ class Config:
         self.smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
         self.smtp_port = os.environ.get("SMTP_PORT", 587)
         self.openai_api_key = os.environ["OPENAI_API_KEY"]
+        self.webhook_url = os.environ["WEBHOOK_URL"]
+        self.github_token = os.environ["GITHUB_TOKEN"]
+
         openai.api_key = self.openai_api_key
 
 
