@@ -226,6 +226,30 @@ class Database:
             task_id,
         )
 
+    # Get all tasks of a user
+    async def list_user_tasks(self, user_id: int) -> List[Task]:
+        data = await self.fetchall(
+            """
+                SELECT * FROM tasks WHERE assignee = ?;
+                """,
+            user_id,
+        )
+
+        return [
+            Task(
+                id=task[0],
+                title=task[1],
+                description=task[2],
+                project_id=task[3],
+                deadline=datetime.datetime.fromtimestamp(task[4]),
+                status=task[5],
+                domain=task[6],
+                assignee=task[7],
+                reminder=task[8],
+            )
+            for task in data
+        ]
+
     # Fetch user using their id
     async def fetch_user(self, user_id: int) -> Optional[User]:
         data = await self.fetchone(
