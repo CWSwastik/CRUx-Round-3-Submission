@@ -1,10 +1,12 @@
 import asyncio
 import aiohttp
 import discord
+from io import StringIO
 from discord.ext import commands
 from discord import app_commands
 from utils.models import Project, Task
 from typing import List, Optional
+from utils import generate_documentation, extract_github_file_content
 
 
 class Github(commands.Cog):
@@ -86,6 +88,48 @@ class Github(commands.Cog):
                     await interaction.response.send_message(
                         f"Failed to fetch data from GitHub API (Status code: {response.status})."
                     )
+
+    # create a command that takes a github repo file url and creates documentation for that file using open ai and sends it as a .MD file
+    @app_commands.command(
+        name="generate-docs",
+        description="Create documentation for a GitHub repository file!",
+    )
+    @app_commands.describe(
+        github_file_url="The GitHub URL to create documentation for",
+    )
+    async def generate_docs(
+        self,
+        interaction: discord.Interaction,
+        github_file_url: str,
+    ):
+        if not github_file_url.startswith(
+            "https://raw.githubusercontent.com"
+        ) and github_file_url.startswith("https://github.com"):
+            github_file_url = github_file_url.replace(
+                "https://github.com", "https://raw.githubusercontent.com"
+            ).replace("/blob/", "/")
+        else:
+            await interaction.response.send_message(
+                "Invalid GitHub URL. Please use a URL that points to a raw file on GitHub."
+            )
+            return
+
+        async with aiohttp.ClientSession() as session:
+            file_content = await extract_github_file_content(session, github_file_url)
+            if file_content is not None:
+                await interaction.response.defer()
+                generated_documentation = await generate_documentation(file_content)
+                markdown_file_content = f"# Documentation for {github_file_url}\n\n{generated_documentation}"
+
+                await interaction.followup.send(
+                    file=discord.File(
+                        StringIO(markdown_file_content), filename="documentation.md"
+                    )
+                )
+            else:
+                await interaction.response.send_message(
+                    "Failed to fetch GitHub file content."
+                )
 
 
 async def setup(bot: commands.Bot) -> None:

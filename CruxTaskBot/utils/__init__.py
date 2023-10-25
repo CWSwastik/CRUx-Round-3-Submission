@@ -1,6 +1,8 @@
 from .database import Database
 
 import re
+import openai
+import aiohttp
 
 
 def parse_time_to_seconds(time_str):
@@ -64,3 +66,21 @@ def is_valid_github_repo_url(url):
     match = re.match(github_repo_pattern, url)
 
     return match is not None
+
+
+async def extract_github_file_content(
+    session: aiohttp.ClientSession, github_file_url: str
+):
+    async with session.get(github_file_url) as response:
+        if response.status == 200:
+            return await response.text()
+        return None
+
+
+async def generate_documentation(file_content: str) -> str:
+    prompt = f"Generate documentation for this code in .MD format: ```{file_content}```"
+    response = await openai.ChatCompletion.acreate(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content  # TODO: Somehow send the full response

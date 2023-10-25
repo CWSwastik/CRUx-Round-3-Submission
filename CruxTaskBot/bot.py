@@ -1,6 +1,7 @@
 import os
 import time
 
+import openai
 import discord
 from discord import Intents, app_commands
 from discord.ext import commands
@@ -26,6 +27,8 @@ class Config:
         self.email_password = os.environ["EMAIL_PASSWORD"]
         self.smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
         self.smtp_port = os.environ.get("SMTP_PORT", 587)
+        self.openai_api_key = os.environ["OPENAI_API_KEY"]
+        openai.api_key = self.openai_api_key
 
 
 class CruxTaskBot(commands.Bot):

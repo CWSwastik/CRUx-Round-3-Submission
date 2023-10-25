@@ -4,3 +4,4 @@ jishaku
 colorama
 aiosqlite
 python-dateutil
+openai
