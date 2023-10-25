@@ -15,3 +15,10 @@ img
 
 # Data Folder
 data
+
+# Credentials
+token.json
+credentials.json
+
+# ngrok
+ngrok.exe
