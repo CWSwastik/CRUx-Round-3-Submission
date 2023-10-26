@@ -3,6 +3,7 @@ import time
 import aiohttp
 import requests
 import datetime
+from typing import Optional
 
 
 class GithubAPIError(Exception):
@@ -128,20 +129,26 @@ class GithubRequestsManager:
         if self.token_expires_at < datetime.datetime.utcnow():
             await self.async_update_access_token()
 
-    async def get(self, endpoint: str) -> dict:
+    async def get(self, endpoint: str, params: Optional[dict] = None) -> dict:
         """
         Sends a GET request to the given endpoint.
 
         Args:
             endpoint (str): The endpoint to send the request to.
+            params (Optional[dict]): The parameters to send.
 
         Returns:
             dict: The response data.
         """
+        params = params or {}
+
         await self.refresh_token()
 
         endpoint = self.BASE_URL + endpoint
-        async with self.session.get(endpoint, headers=self.headers) as response:
+
+        async with self.session.get(
+            endpoint, headers=self.headers, params=params
+        ) as response:
             if response.status in (200, 201, 202):
                 return await response.json()
             else:

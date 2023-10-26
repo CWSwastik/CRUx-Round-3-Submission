@@ -88,7 +88,7 @@ class Github(commands.Cog):
                 f"No data found for `{github_username}`."
             )
 
-    # create a command that takes a github repo file url and creates documentation for that file using open ai and sends it as a .MD file
+    # TODO: Check if it works for organizations
     @app_commands.command(
         name="generate-docs",
         description="Create documentation for a GitHub repository file!",
@@ -120,9 +120,7 @@ class Github(commands.Cog):
         )
         if file_content is not None:
             await interaction.response.defer()
-            generated_documentation = (
-                "# Test"  # await generate_documentation(file_content)
-            )
+            generated_documentation = await generate_documentation(file_content)
             markdown_file_content = (
                 f"# Documentation for {github_file_url}\n\n{generated_documentation}"
             )
@@ -152,11 +150,12 @@ class Github(commands.Cog):
             project = [p for p in projects if repository_name in p.github_url]
             if project:
                 project = project[0]
-                res = await self.create_branch(project, "bot-docs")
-                print(res)
-                print(fp)
-                await self.add_file_to_branch(
+                await self.create_branch(project, "bot-docs")
+                res = await self.add_file_to_branch(
                     project, "bot-docs", fp, markdown_file_content
+                )
+                await interaction.followup.send(
+                    f"Documentation pushed to [bot-docs]({res[-1]['content']['html_url']}) branch!"
                 )
 
     async def create_branch(self, project: Project, branch_name: str):
@@ -183,6 +182,7 @@ class Github(commands.Cog):
 
         return True, "Branch created!", response
 
+    # TODO: Test if it works in directories
     async def add_file_to_branch(
         self, project: Project, branch_name: str, file_path: str, content: str
     ):
@@ -194,7 +194,7 @@ class Github(commands.Cog):
         endpoint = f"/repos{repository_path}/contents/{file_path}"
         content = base64.b64encode(content.encode()).decode()
         try:
-            data = await self.gh.get(endpoint)
+            data = await self.gh.get(endpoint, params={"ref": branch_name})
             sha = data["sha"]
 
             response = await self.gh.put(
@@ -221,6 +221,8 @@ class Github(commands.Cog):
                     "branch": branch_name,
                 },
             )
+
+            return True, "File created!", response
 
     async def project_autocomplete(
         self, interaction: discord.Interaction, current: str
