@@ -25,3 +25,10 @@ ngrok.exe
 
 # Github Credentials
 github_private_key.pem
+
+# Extension files
+node_modules
+venv
+package-lock.json
+package.json
+extension.js
