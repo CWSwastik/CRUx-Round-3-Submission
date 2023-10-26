@@ -17,6 +17,7 @@ class Task:
 
     def to_dict(self):
         return {
+            "id": self.id,
             "title": self.title,
             "description": self.description,
             "project_id": self.project_id,

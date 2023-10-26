@@ -13,11 +13,18 @@ class Webserver(commands.Cog):
         async def root_handler(request):
             return web.Response(text="Hello, world")
 
-        async def task_handler(request):
+        async def get_task_handler(request):
             # TODO: Use an internal id instead of user id
             user_id = request.match_info["user_id"]
             tasks = await self.bot.db.list_user_tasks(user_id)
             return web.json_response([task.to_dict() for task in tasks])
+
+        async def post_task_handler(request):
+            data = await request.json()
+            status = "In Progress" if data["action"] == "start" else "Completed"
+            # TODO: check correct user
+            await self.bot.db.set_task_status(data["id"], status)
+            return web.Response(text="OK")
 
         async def webhook_handler(request):
             data = await request.json()
@@ -41,7 +48,8 @@ class Webserver(commands.Cog):
 
         app = web.Application()
         app.router.add_get("/", root_handler)
-        app.router.add_get("/tasks/{user_id}", task_handler)
+        app.router.add_get("/tasks/{user_id}", get_task_handler)
+        app.router.add_post("/tasks/{user_id}", post_task_handler)
         app.router.add_post("/webhook", webhook_handler)
         runner = web.AppRunner(app)
         await runner.setup()

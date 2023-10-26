@@ -13,11 +13,35 @@ with open(index_html_path, "r") as f:
 
 
 def get_formatted_html(tasks: List[dict]) -> str:
-    task_list = "<ul>"
+    # display tasks in 3 groups, Assigned, In Progress, Completed
+    # add a button next to each task to move it to the next group
+
+    task_list = "<div>"
+    task_list += "<div><h3>Assigned</h3>"
     for task in tasks:
-        task_list += f"<li>{task['title']}</li>"
-    task_list += "</ul>"
-    return HTML_TEMPLATE.format(body=task_list, script="")
+        if task["status"] == "Assigned":
+            task_list += f"<div> {task['title']} <button onclick='start({task['id']})'>Start</button> </div>"
+    task_list += "</div>"
+    task_list += "<div><h3>In Progress</h3>"
+    for task in tasks:
+        if task["status"] == "In Progress":
+            task_list += f"<div> {task['title']} <button onclick='complete({task['id']})'>Complete</button> </div>"
+    task_list += "</div>"
+    task_list += "<div><h3>Completed</h3>"
+    for task in tasks:
+        if task["status"] == "Completed":
+            task_list += f"<div> {task['title']} </div>"
+    task_list += "</div>"
+
+    script = """
+    <script>
+        let vscode = acquireVsCodeApi();
+        function start(id) { vscode.postMessage({ name: 'start', 'id': id }); };
+        function complete(id) { vscode.postMessage({ name: 'complete', 'id': id }); };
+    </script>
+    """
+
+    return HTML_TEMPLATE.format(body=task_list, script=script)
 
 
 @ext.command()
@@ -32,11 +56,29 @@ async def show_crux_tasks_window(ctx):
     session = aiohttp.ClientSession()
     async with session.get(url) as resp:
         res = await resp.json()
-    await session.close()
 
-    panel = WebviewPanel("Crux Tasks", vscode.ViewColumn.Beside)
+    panel = WebviewPanel("Crux Tasks", vscode.ViewColumn.Two)
     await ctx.window.create_webview_panel(panel)
 
+    async def on_message(data):
+        if data["name"] == "start":
+            async with session.post(
+                url, json={"id": data["id"], "action": "start"}
+            ) as resp:
+                res = await resp.text()
+
+        elif data["name"] == "complete":
+            async with session.post(
+                url, json={"id": data["id"], "action": "complete"}
+            ) as resp:
+                res = await resp.text()
+
+        async with session.get(url) as resp:
+            res = await resp.json()
+
+        await panel.set_html(get_formatted_html(res))
+
+    panel.on_message = on_message
     await panel.set_html(get_formatted_html(res))
 
 
