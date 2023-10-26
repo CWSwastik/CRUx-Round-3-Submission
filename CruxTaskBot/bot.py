@@ -10,6 +10,7 @@ import platform
 from colorama import Back, Style, Fore
 
 from utils import Database
+from utils.github import GithubAPIError
 
 try:
     import dotenv
@@ -23,13 +24,22 @@ class Config:
     def __init__(self):
         self.bot_token = os.environ["DISCORD_TOKEN"]
         self.bot_prefix = os.environ.get("PREFIX", ["t!"])
+
         self.email_id = os.environ["EMAIL_ID"]
         self.email_password = os.environ["EMAIL_PASSWORD"]
+
         self.smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
         self.smtp_port = os.environ.get("SMTP_PORT", 587)
+
         self.openai_api_key = os.environ["OPENAI_API_KEY"]
+
         self.webhook_url = os.environ["WEBHOOK_URL"]
         self.github_token = os.environ["GITHUB_TOKEN"]
+        self.github_app_id = os.environ["GITHUB_APP_ID"]
+        self.github_installation_id = os.environ["GITHUB_INSTALLATION_ID"]
+
+        with open("github_private_key.pem", "r") as f:
+            self.github_private_key = f.read()
 
         openai.api_key = self.openai_api_key
 
@@ -107,5 +117,14 @@ class CruxTaskBot(commands.Bot):
                 f"To use this command you need the {error.missing_role} role!",
                 ephemeral=True,
             )
+        elif isinstance(error, app_commands.errors.CommandInvokeError) and isinstance(
+            error.original, GithubAPIError
+        ):
+            if interaction.response.is_done():
+                send = interaction.followup.send
+            else:
+                send = interaction.response.send_message
+
+            return await send(f"Failed to fetch data from GitHub API ({error}).")
         else:
             raise error

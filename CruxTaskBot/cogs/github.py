@@ -9,11 +9,18 @@ from utils.models import Project, Task
 from typing import List, Optional
 from urllib.parse import urlparse
 from utils import generate_documentation, extract_github_file_content
+from utils.github import GithubRequestsManager
 
 
+# TODO: Permissions check
 class Github(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
+        self.gh = GithubRequestsManager(
+            self.bot.config.github_app_id,
+            self.bot.config.github_private_key,
+            self.bot.config.github_installation_id,
+        )
 
     # TODO: Imporve display of activity
     @app_commands.command(
@@ -53,43 +60,32 @@ class Github(commands.Cog):
                 )
                 return
 
-        github_api_url = f"https://api.github.com/users/{github_username}/events"
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(github_api_url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    if data:
-                        activity = [
-                            event
-                            for event in data
-                            if event["type"]
-                            in ["PullRequestEvent", "IssuesEvent", "PushEvent"]
-                        ]
-                        if activity:
-                            activity_message = (
-                                "Recent GitHub Activity for "
-                                + github_username
-                                + ":\n\n"
-                            )
-                            for event in activity:
-                                event_type = event["type"]
-                                repo_name = event["repo"]["name"]
-                                created_at = event["created_at"]
-                                activity_message += f"Type: {event_type}\nRepository: {repo_name}\nCreated At: {created_at}\n\n"
-                            await interaction.response.send_message(activity_message)
-                        else:
-                            await interaction.response.send_message(
-                                f"No recent GitHub activity found for `{github_username}`."
-                            )
-                    else:
-                        await interaction.response.send_message(
-                            f"No data found for `{github_username}`."
-                        )
-                else:
-                    await interaction.response.send_message(
-                        f"Failed to fetch data from GitHub API (Status code: {response.status})."
-                    )
+        endpoint = f"/users/{github_username}/events"
+        data = await self.gh.get(endpoint)
+        if data:
+            activity = [
+                event
+                for event in data
+                if event["type"] in ["PullRequestEvent", "IssuesEvent", "PushEvent"]
+            ]
+            if activity:
+                activity_message = (
+                    "Recent GitHub Activity for " + github_username + ":\n\n"
+                )
+                for event in activity:
+                    event_type = event["type"]
+                    repo_name = event["repo"]["name"]
+                    created_at = event["created_at"]
+                    activity_message += f"Type: {event_type}\nRepository: {repo_name}\nCreated At: {created_at}\n\n"
+                await interaction.response.send_message(activity_message)
+            else:
+                await interaction.response.send_message(
+                    f"No recent GitHub activity found for `{github_username}`."
+                )
+        else:
+            await interaction.response.send_message(
+                f"No data found for `{github_username}`."
+            )
 
     # create a command that takes a github repo file url and creates documentation for that file using open ai and sends it as a .MD file
     @app_commands.command(
@@ -118,22 +114,27 @@ class Github(commands.Cog):
             )
             return
 
-        async with aiohttp.ClientSession() as session:
-            file_content = await extract_github_file_content(session, github_file_url)
-            if file_content is not None:
-                await interaction.response.defer()
-                generated_documentation = await generate_documentation(file_content)
-                markdown_file_content = f"# Documentation for {github_file_url}\n\n{generated_documentation}"
+        file_content = await extract_github_file_content(
+            self.gh.session, github_file_url
+        )
+        if file_content is not None:
+            await interaction.response.defer()
+            generated_documentation = (
+                "# Test"  # await generate_documentation(file_content)
+            )
+            markdown_file_content = (
+                f"# Documentation for {github_file_url}\n\n{generated_documentation}"
+            )
 
-                await interaction.followup.send(
-                    file=discord.File(
-                        StringIO(markdown_file_content), filename="documentation.md"
-                    )
+            await interaction.followup.send(
+                file=discord.File(
+                    StringIO(markdown_file_content), filename="documentation.md"
                 )
-            else:
-                return await interaction.response.send_message(
-                    "Failed to fetch GitHub file content."
-                )
+            )
+        else:
+            return await interaction.response.send_message(
+                "Failed to fetch GitHub file content."
+            )
 
         if automatically_push_to_github:
             # check if file is a project repo
@@ -152,44 +153,27 @@ class Github(commands.Cog):
 
     async def create_branch(self, project: Project, branch_name: str):
         repository_path = urlparse(project.github_url).path
-        github_api_url = f"https://api.github.com/repos{repository_path}/branches"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(github_api_url) as response:
-                if response.status != 200:
-                    return (
-                        False,
-                        f"1 {response.status}, {response.reason}, {github_api_url}",
-                    )
+        endpoint = f"/repos{repository_path}/branches"
 
-                data = await response.json()
+        data = await self.gh.get(endpoint)
 
-                if not data:
-                    return False, "No branches found!"
+        if not data:
+            return False, "No branches found!"
 
-                branches = [branch["name"] for branch in data]
-                if branch_name not in branches:
-                    github_api_url = (
-                        f"https://api.github.com/repos{repository_path}/git/refs"
-                    )
-                    async with session.post(
-                        github_api_url,
-                        json={
-                            "ref": f"refs/heads/{branch_name}",
-                            "sha": data[0]["commit"]["sha"],
-                        },
-                        headers={
-                            "Authorization": f"token {self.bot.config.github_token}",
-                        },
-                    ) as response:
-                        if response.status == 201:
-                            return True, "Branch created!"
-                        else:
-                            return (
-                                False,
-                                f"2 {response.status}, {response.reason}, {github_api_url}",
-                            )
-                else:
-                    return True, "Branch already exists!"
+        branches = [branch["name"] for branch in data]
+        if branch_name in branches:
+            return True, "Branch already exists!"
+
+        endpoint = f"/repos{repository_path}/git/refs"
+        response = await self.gh.post(
+            endpoint,
+            data={
+                "ref": f"refs/heads/{branch_name}",
+                "sha": data[0]["commit"]["sha"],
+            },
+        )
+
+        return True, "Branch created!", response
 
     async def project_autocomplete(
         self, interaction: discord.Interaction, current: str
@@ -243,31 +227,24 @@ class Github(commands.Cog):
 
     async def setup_webhook_for_project(self, project: Project):
         repository_path = urlparse(project.github_url).path
-        github_api_url = f"https://api.github.com/repos{repository_path}/hooks"
+        endpoint = f"/repos{repository_path}/hooks"
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                github_api_url,
-                json={
-                    "name": "web",
-                    "active": True,
-                    "events": ["issues", "pull_request", "push", "ping"],
-                    "config": {
-                        "url": self.bot.config.webhook_url,
-                        "content_type": "json",
-                    },
+        data = await self.gh.post(
+            endpoint=endpoint,
+            data={
+                "name": "web",
+                "active": True,
+                "events": ["issues", "pull_request", "push", "ping"],
+                "config": {
+                    "url": self.bot.config.webhook_url,
+                    "content_type": "json",
                 },
-                headers={
-                    "Authorization": f"token {self.bot.config.github_token}",
-                },
-            ) as response:
-                if response.status == 201:
-                    data = await response.json()
-                    webhook_id = data["id"]
-                    # TODO: Store this in database
-                    return True, webhook_id
-                else:
-                    return False, response.status, response.reason
+            },
+        )
+
+        webhook_id = data["id"]
+        # TODO: Store this in database
+        return True, webhook_id
 
     async def webserver(self):
         async def root_handler(request):
