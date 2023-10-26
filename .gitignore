@@ -16,9 +16,12 @@ img
 # Data Folder
 data
 
-# Credentials
+# Credentials  (Google Calendar API)
 token.json
 credentials.json
 
 # ngrok
 ngrok.exe
+
+# Github Credentials
+github_private_key.pem
