@@ -3,6 +3,7 @@ import time
 
 import openai
 import discord
+import aiohttp
 from discord import Intents, app_commands
 from discord.ext import commands
 
@@ -67,6 +68,10 @@ class CruxTaskBot(commands.Bot):
         )
 
         self.tree.on_error = self.on_tree_error
+
+    @property
+    def session(self) -> aiohttp.ClientSession:
+        return self.http._HTTPClient__session
 
     async def setup_hook(self) -> None:
         for file in os.listdir("cogs"):

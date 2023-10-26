@@ -1,5 +1,5 @@
+import base64
 import asyncio
-import aiohttp
 import discord
 from io import StringIO
 from aiohttp import web
@@ -9,7 +9,7 @@ from utils.models import Project, Task
 from typing import List, Optional
 from urllib.parse import urlparse
 from utils import generate_documentation, extract_github_file_content
-from utils.github import GithubRequestsManager
+from utils.github import GithubAPIError, GithubRequestsManager
 
 
 # TODO: Permissions check
@@ -20,6 +20,7 @@ class Github(commands.Cog):
             self.bot.config.github_app_id,
             self.bot.config.github_private_key,
             self.bot.config.github_installation_id,
+            self.bot.session,
         )
 
     # TODO: Imporve display of activity
@@ -139,17 +140,24 @@ class Github(commands.Cog):
         if automatically_push_to_github:
             # check if file is a project repo
             projects = await self.bot.db.list_all_projects()
-            repository_name = "/".join(urlparse(github_file_url).path.split("/")[1:3])
+            repo_parts = urlparse(github_file_url).path.split("/")
+            repository_name = "/".join(repo_parts[1:3])
+
+            # convert name of code file to markdown file (main.py/js/any ext -> main_docs.md)
+            fname = repo_parts[-1].partition(".")[0]
+            fname = fname + "_docs.md"
+            repo_parts[-1] = fname
+            fp = "/".join(repo_parts[4:])
+
             project = [p for p in projects if repository_name in p.github_url]
             if project:
                 project = project[0]
-                res = await self.create_branch(
-                    project, "bot-docs"
-                )  # TODO: Figure out why forbidden for collaborators
+                res = await self.create_branch(project, "bot-docs")
                 print(res)
-                #  await self.push_to_github(
-                #    project, "bot-docs", "Documentation for " + github_file_url
-                # )  # TODO
+                print(fp)
+                await self.add_file_to_branch(
+                    project, "bot-docs", fp, markdown_file_content
+                )
 
     async def create_branch(self, project: Project, branch_name: str):
         repository_path = urlparse(project.github_url).path
@@ -174,6 +182,45 @@ class Github(commands.Cog):
         )
 
         return True, "Branch created!", response
+
+    async def add_file_to_branch(
+        self, project: Project, branch_name: str, file_path: str, content: str
+    ):
+        """
+        This function adds a file to a branch in a GitHub repository. If it already exists it will be overwritten.
+        """
+
+        repository_path = urlparse(project.github_url).path
+        endpoint = f"/repos{repository_path}/contents/{file_path}"
+        content = base64.b64encode(content.encode()).decode()
+        try:
+            data = await self.gh.get(endpoint)
+            sha = data["sha"]
+
+            response = await self.gh.put(
+                endpoint,
+                data={
+                    "message": f"Update {file_path}",
+                    "content": content,
+                    "sha": sha,
+                    "branch": branch_name,
+                },
+            )
+
+            return True, "File updated!", response
+        except GithubAPIError as e:
+            if e.response_status_code != 404:
+                raise e
+
+            endpoint = f"/repos{repository_path}/contents/{file_path}"
+            response = await self.gh.put(
+                endpoint,
+                data={
+                    "message": f"Create {file_path}",
+                    "content": content,
+                    "branch": branch_name,
+                },
+            )
 
     async def project_autocomplete(
         self, interaction: discord.Interaction, current: str

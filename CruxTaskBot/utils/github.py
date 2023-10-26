@@ -6,7 +6,12 @@ import datetime
 
 
 class GithubAPIError(Exception):
-    pass
+    def __init__(self, response_status_code: int, response_message: str) -> None:
+        message = f"Error: {response_status_code} {response_message}"
+        super().__init__(message)
+        self.message = message
+        self.response_status_code = response_status_code
+        self.response_message = response_message
 
 
 class GithubRequestsManager:
@@ -22,7 +27,7 @@ class GithubRequestsManager:
         self.app_id = app_id
         self.private_key = private_key
         self.installation_id = installation_id
-        self.session = session or aiohttp.ClientSession()
+        self.session = session
 
         self.token: str = None
         self.token_expires_at: datetime.datetime | None = None
@@ -72,9 +77,7 @@ class GithubRequestsManager:
                 data["expires_at"][:-1]
             )
         else:
-            raise GithubAPIError(
-                f"Error updating access_token: {response.status_code} {response.text}"
-            )
+            raise GithubAPIError(response.status, response.text)
 
     async def async_update_access_token(self) -> str:
         """
@@ -101,9 +104,7 @@ class GithubRequestsManager:
                     data["expires_at"][:-1]
                 )
             else:
-                raise GithubAPIError(
-                    f"Error: {response.status} {await response.text()}"
-                )
+                raise GithubAPIError(response.status, await response.text())
 
     @property
     def headers(self) -> dict:
@@ -141,12 +142,10 @@ class GithubRequestsManager:
 
         endpoint = self.BASE_URL + endpoint
         async with self.session.get(endpoint, headers=self.headers) as response:
-            if response.status == 200:
+            if response.status in (200, 201, 202):
                 return await response.json()
             else:
-                raise GithubAPIError(
-                    f"Error: {response.status} {await response.text()}"
-                )
+                raise GithubAPIError(response.status, await response.text())
 
     async def post(self, endpoint: str, data: dict) -> dict:
         """
@@ -166,9 +165,30 @@ class GithubRequestsManager:
         async with self.session.post(
             endpoint, headers=self.headers, json=data
         ) as response:
-            if response.status == 200:
+            if response.status in (200, 201, 202):
                 return await response.json()
             else:
-                raise GithubAPIError(
-                    f"Error: {response.status} {await response.text()}"
-                )
+                raise GithubAPIError(response.status, await response.text())
+
+    async def put(self, endpoint: str, data: dict) -> dict:
+        """
+        Sends a PUT request to the given endpoint.
+
+        Args:
+            endpoint (str): The endpoint to send the request to.
+            data (dict): The data to send.
+
+        Returns:
+            dict: The response data.
+        """
+
+        await self.refresh_token()
+
+        endpoint = self.BASE_URL + endpoint
+        async with self.session.put(
+            endpoint, headers=self.headers, json=data
+        ) as response:
+            if response.status in (200, 201, 202):
+                return await response.json()
+            else:
+                raise GithubAPIError(response.status, await response.text())
