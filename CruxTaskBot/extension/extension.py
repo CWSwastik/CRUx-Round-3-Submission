@@ -17,7 +17,7 @@ def get_formatted_html(tasks: List[dict]) -> str:
     for task in tasks:
         task_list += f"<li>{task['title']}</li>"
     task_list += "</ul>"
-    return HTML_TEMPLATE.format(task_list, "")
+    return HTML_TEMPLATE.format(body=task_list, script="")
 
 
 @ext.command()
@@ -37,7 +37,7 @@ async def show_crux_tasks_window(ctx):
     panel = WebviewPanel("Crux Tasks", vscode.ViewColumn.Beside)
     await ctx.window.create_webview_panel(panel)
 
-    await panel.set_html(get_formatted_html(res["tasks"]))
+    await panel.set_html(get_formatted_html(res))
 
 
 ext.run()

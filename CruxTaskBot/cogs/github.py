@@ -1,8 +1,6 @@
 import base64
-import asyncio
 import discord
 from io import StringIO
-from aiohttp import web
 from discord.ext import commands
 from discord import app_commands
 from utils.models import Project, Task
@@ -285,7 +283,7 @@ class Github(commands.Cog):
                 "active": True,
                 "events": ["issues", "pull_request", "push", "ping"],
                 "config": {
-                    "url": self.bot.config.webhook_url,
+                    "url": self.bot.config.webserver_url + "/webhook",
                     "content_type": "json",
                 },
             },
@@ -295,44 +293,6 @@ class Github(commands.Cog):
         # TODO: Store this in database
         return True, webhook_id
 
-    async def webserver(self):
-        async def root_handler(request):
-            return web.Response(text="Hello, world")
-
-        async def webhook_handler(request):
-            data = await request.json()
-            event_type = request.headers.get("X-GitHub-Event")
-
-            if event_type in ["issues", "pull_request", "push", "ping"]:
-                repository = data["repository"]["full_name"]
-                html_url = data["repository"]["html_url"]
-                projects = await self.bot.db.list_all_projects()
-                project = [p for p in projects if p.github_url == html_url]
-                if project:
-                    project = project[0]
-                    ch = self.bot.get_channel(project.channel)
-                    if not ch:
-                        ch = await self.bot.fetch_channel(project.channel)
-
-                    # TODO: send a proper embed with more information
-                    await ch.send(f"New {event_type} event for {repository}!")
-
-            return web.Response(text="OK")
-
-        app = web.Application()
-        app.router.add_get("/", root_handler)
-        app.router.add_post("/webhook", webhook_handler)
-        runner = web.AppRunner(app)
-        await runner.setup()
-        self.site = web.TCPSite(runner, "localhost", 8080)
-        await self.bot.wait_until_ready()
-        await self.site.start()
-
-    def __unload(self):
-        asyncio.ensure_future(self.site.stop())
-
 
 async def setup(bot: commands.Bot) -> None:
-    gh = Github(bot)
-    await bot.add_cog(gh)
-    bot.loop.create_task(gh.webserver())
+    await bot.add_cog(Github(bot))

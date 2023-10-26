@@ -15,6 +15,18 @@ class Task:
     reminder: Optional[int] = None  # No of seconds before deadline to send reminder
     id: Optional[int] = None
 
+    def to_dict(self):
+        return {
+            "title": self.title,
+            "description": self.description,
+            "project_id": self.project_id,
+            "deadline": self.deadline.timestamp(),
+            "status": self.status,
+            "domain": self.domain,
+            "assignee": self.assignee,
+            "reminder": self.reminder,
+        }
+
 
 @dataclass
 class Project:
