@@ -198,20 +198,14 @@ class Database:
             task_id,
         )
 
-    # Edit task
-    # TODO: Fix this
-    async def edit_task(self, task_id: int, **kwargs) -> None:
+    # Set task status
+    async def set_task_status(self, task_id: int, status: str) -> None:
         await self.execute(
             """
-                UPDATE tasks SET title = ?, description = ?, deadline = ?, status = ?, domain = ?, assignee = ?
+                UPDATE tasks SET status = ?
                 WHERE id = ?;
                 """,
-            kwargs["title"],
-            kwargs["description"],
-            kwargs["deadline"].timestamp(),
-            kwargs["status"],
-            kwargs["domain"],
-            kwargs["assignee"],
+            status,
             task_id,
         )
 

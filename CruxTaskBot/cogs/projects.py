@@ -6,7 +6,7 @@ from discord.ext import commands
 from discord import app_commands
 from utils import is_valid_github_repo_url
 from utils.models import Project, Task
-from typing import List, Optional
+from typing import List, Literal, Optional
 from dateutil import parser as date_parser
 from utils import parse_time_to_seconds
 
@@ -186,6 +186,84 @@ class Projects(commands.Cog):
         await interaction.response.send_message(
             f"Task `{title}` under `{project_obj.title}:{domain.value}` created and assigned to {assignee.mention} with deadline: <t:{deadline_datetime.timestamp():.0f}>."
         )
+
+    async def task_autocomplete(self, interaction: discord.Interaction, current: str):
+        tasks = await self.bot.db.list_user_tasks(interaction.user.id)
+        projects = await self.bot.db.list_all_projects()
+
+        choices = []
+        for task in tasks:
+            if current in task.title:
+                project = [p for p in projects if p.id == task.project_id][0]
+                formatted_task_title = project.title + " - " + task.title
+                task_value = f"{task.project_id}:{task.id}"
+                choices.append(
+                    app_commands.Choice(name=formatted_task_title, value=task_value)
+                )
+
+        return choices
+
+    # Update task status command
+    @app_commands.command(
+        name="update-task-status",
+        description="Update the status of a task!",
+    )
+    @app_commands.describe(
+        task="The task to update the status for",
+        status="The new status for this task",
+    )
+    @app_commands.autocomplete(
+        task=task_autocomplete,
+    )
+    async def update_task_status(
+        self,
+        interaction: discord.Interaction,
+        task: str,
+        status: Literal["Assigned", "In Progress", "Completed"],
+    ):
+        """
+        This command updates the status of a given task.
+        """
+
+        tasks = await self.bot.db.list_user_tasks(interaction.user.id)
+
+        if task not in [f"{t.project_id}:{t.id}" for t in tasks]:
+            await interaction.response.send_message(
+                f"You don't have a task with the title {task}!", ephemeral=True
+            )
+            return
+
+        task = [t for t in tasks if f"{t.project_id}:{t.id}" == task][0]
+
+        await self.bot.db.set_task_status(task.id, status)
+        await interaction.response.send_message(
+            f"Task `{task.title}` updated with status `{status}`."
+        )
+
+    # Displays tasks for a user command
+    @app_commands.command(
+        name="view-tasks",
+        description="View your tasks!",
+    )
+    async def view_tasks(self, interaction: discord.Interaction):
+        # display the users tasks in an embed with the deadline as a discord timestamp
+
+        tasks = await self.bot.db.list_user_tasks(interaction.user.id)
+        projects = await self.bot.db.list_all_projects()
+
+        if not tasks:
+            await interaction.response.send_message(
+                "No tasks found for you.", ephemeral=True
+            )
+            return
+
+        embed = discord.Embed(title="Your Tasks", color=discord.Color.random())
+        embed.description = ""
+        for task in tasks:
+            project = [p for p in projects if p.id == task.project_id][0]
+            embed.description += f"- {project.title} - {task.title} - <t:{task.deadline.timestamp():.0f}:R> - {task.status}\n"
+
+        await interaction.response.send_message(embed=embed)
 
     # View tasks command
     @app_commands.command(
