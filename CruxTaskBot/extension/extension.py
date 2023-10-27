@@ -2,7 +2,7 @@ import os
 import vscode
 import aiohttp
 from typing import List
-from vscode import InfoMessage, InputBox, WebviewPanel
+from vscode import InfoMessage, InputBox, WebviewPanel, QuickPick, QuickPickOptions
 
 ext = vscode.Extension("Crux Task Extension")
 
@@ -46,6 +46,8 @@ def get_formatted_html(tasks: List[dict]) -> str:
 
 @ext.command()
 async def show_crux_tasks_window(ctx):
+    """Show the crux tasks window as a webview"""
+
     box = InputBox(
         title="Authentication URL",
         prompt="Run /authenticate-extension on the discord bot and enter the url it generates here",
@@ -80,6 +82,34 @@ async def show_crux_tasks_window(ctx):
 
     panel.on_message = on_message
     await panel.set_html(get_formatted_html(res))
+
+
+@ext.command()
+async def generate_documentation(ctx):
+    """Generate documentation for the current workspace"""
+
+    # get all files in the workspace
+    folders = await ctx.workspace.get_workspace_folders()
+    files = []
+
+    # TODO: use os.walk
+    for folder in folders:
+        for file in os.listdir(folder.uri.fs_path):
+            if os.path.isfile(file):
+                files.append(file)
+            else:
+                for f in os.listdir(os.path.join(folder.uri.fs_path, file)):
+                    if os.path.isfile(file):
+                        files.append(f)
+
+    file_picker = QuickPick(files, QuickPickOptions(title="Select a file"))
+    file = await ctx.window.show(file_picker)
+    if not file:
+        return
+    return await ctx.window.show(InfoMessage("Generating documentation..."))
+    box = InputBox()
+    await ctx.window.show(InfoMessage("Generating documentation..."))
+    await ctx.window.show(InfoMessage("Documentation generated"))
 
 
 ext.run()
