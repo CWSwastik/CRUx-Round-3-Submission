@@ -18,7 +18,8 @@ class SocketIOClient:
 
         @self.sio.on("disconnect")
         def on_disconnect():
-            print("Disconnected from the server")
+            print("Disconnected from the server, exiting...")
+            os._exit(0)
 
     def connect(self, name):
         try:
