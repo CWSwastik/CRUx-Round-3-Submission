@@ -7,9 +7,15 @@ ImageDC++ is a command-line tool for sharing and retrieving images within a loca
 
 ## Features
 
-- **Image Sharing**: Share your image files with other users on the local network.
-- **Search for Images**: Search for images shared by other users based on keywords or queries.
-- **Download Images**: Download images from other users' shared collections.
+- **Image Sharing**: Share your image files with other users on the local network. You can share
+    - Individual photos
+    - Folders with photos (Nested folders supported)
+- **Search for Images**: Search for images currently being shared by other users.
+   - The search implements Fuzzy search
+- **Download Images**: Download retrieved photos in a zipped folder. 
+    - The images in the zip are segregated into folders based on who shared the image
+- **Server Connectivity**: The server facilitates real-time image sharing but does not persist any information after users go offline.
+    - It keeps data in memory as long as users are connected and sharing something.
 
 ## Installation & Setup
 
