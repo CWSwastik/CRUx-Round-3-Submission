@@ -123,14 +123,14 @@ def download_images(name: str, cli: CLIUtils, client: SocketIOClient) -> None:
             user, _, fname = img.partition("__")
             display_text[fname + f" (Uploader: {user})"] = img
 
-        result = cli.get_selected_items(
+        items = cli.get_selected_items(
             "choices",
             "Please choose the images that you'd like to download (space to select, enter to confirm)",
             display_text,
         )
-        result = [display_text[i] for i in result]
+        items = [display_text[i] for i in items]
 
-        if not result:
+        if not items:
             print("[!] Not downloading any images as none were selected.")
             return
 
@@ -139,14 +139,14 @@ def download_images(name: str, cli: CLIUtils, client: SocketIOClient) -> None:
         )
         with cli.spinner("Downloading images...", color="green") as spinner:
             cli.wait(0.3)
-            result = client.download_images(result, zip_path)
-            if result[0]:
+            res = client.download_images(items, zip_path)
+            if res[0]:
                 spinner.text = (
-                    f"{len(result)}/{len(images)} Images downloaded to {zip_path}!"
+                    f"{len(items)}/{len(images)} Images downloaded to {zip_path}!"
                 )
                 spinner.ok("[✓]")
             else:
-                spinner.text = f"Failed to download images: {result[1]}"
+                spinner.text = f"Failed to download images: {res[1]}"
                 spinner.color = "red"
                 spinner.fail("[X]")
 
