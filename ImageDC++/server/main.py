@@ -66,7 +66,7 @@ async def search(sid, query):
 
         search_results.append(matched_img[0])
 
-    print("Search Results: ", ", ".join(search_results))
+    print("Search Results: ", ", ".join(search_results) or "None")
 
     return search_results
 
@@ -79,7 +79,10 @@ async def download_images(sid, data):
 
     result = {}
     for fn in data:
-        result[fn] = base64.b64decode(images[fn])
+        try:
+            result[fn] = base64.b64decode(images[fn])
+        except KeyError:
+            pass  # Ignore images that don't exist (uploader disconnected)
 
     return zip_images(result)
 
@@ -106,6 +109,12 @@ if __name__ == "__main__":
     for arg in sys.argv[1:]:
         try:
             key, value = arg.split("=")
+
+            if value.lower() == "true":
+                value = True
+            elif value.lower() == "false":
+                value = False
+
         except ValueError:
             print(f"Invalid argument: {arg} (must be in the form key=value)")
             quit(1)
