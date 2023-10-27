@@ -7,19 +7,13 @@ from utils.models import Project, Task
 from typing import List, Optional
 from urllib.parse import urlparse
 from utils import generate_documentation, extract_github_file_content
-from utils.github import GithubAPIError, GithubRequestsManager
+from utils.github import GithubAPIError
 
 
 # TODO: Permissions check
 class Github(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        self.gh = GithubRequestsManager(
-            self.bot.config.github_app_id,
-            self.bot.config.github_private_key,
-            self.bot.config.github_installation_id,
-            self.bot.session,
-        )
 
     # TODO: Imporve display of activity
     @app_commands.command(
@@ -60,7 +54,7 @@ class Github(commands.Cog):
                 return
 
         endpoint = f"/users/{github_username}/events"
-        data = await self.gh.get(endpoint)
+        data = await self.bot.gh.get(endpoint)
         if data:
             activity = [
                 event
@@ -114,7 +108,7 @@ class Github(commands.Cog):
             return
 
         file_content = await extract_github_file_content(
-            self.gh.session, github_file_url
+            self.bot.gh.session, github_file_url
         )
         if file_content is not None:
             await interaction.response.defer()
@@ -148,79 +142,13 @@ class Github(commands.Cog):
             project = [p for p in projects if repository_name in p.github_url]
             if project:
                 project = project[0]
-                await self.create_branch(project, "bot-docs")
-                res = await self.add_file_to_branch(
+                await self.gh.create_branch(project.github_url, "bot-docs")
+                res = await self.gh.add_file_to_branch(
                     project, "bot-docs", fp, markdown_file_content
                 )
                 await interaction.followup.send(
                     f"Documentation pushed to [bot-docs]({res[-1]['content']['html_url']}) branch!"
                 )
-
-    async def create_branch(self, project: Project, branch_name: str):
-        repository_path = urlparse(project.github_url).path
-        endpoint = f"/repos{repository_path}/branches"
-
-        data = await self.gh.get(endpoint)
-
-        if not data:
-            return False, "No branches found!"
-
-        branches = [branch["name"] for branch in data]
-        if branch_name in branches:
-            return True, "Branch already exists!"
-
-        endpoint = f"/repos{repository_path}/git/refs"
-        response = await self.gh.post(
-            endpoint,
-            data={
-                "ref": f"refs/heads/{branch_name}",
-                "sha": data[0]["commit"]["sha"],
-            },
-        )
-
-        return True, "Branch created!", response
-
-    # TODO: Test if it works in directories
-    async def add_file_to_branch(
-        self, project: Project, branch_name: str, file_path: str, content: str
-    ):
-        """
-        This function adds a file to a branch in a GitHub repository. If it already exists it will be overwritten.
-        """
-
-        repository_path = urlparse(project.github_url).path
-        endpoint = f"/repos{repository_path}/contents/{file_path}"
-        content = base64.b64encode(content.encode()).decode()
-        try:
-            data = await self.gh.get(endpoint, params={"ref": branch_name})
-            sha = data["sha"]
-
-            response = await self.gh.put(
-                endpoint,
-                data={
-                    "message": f"Update {file_path}",
-                    "content": content,
-                    "sha": sha,
-                    "branch": branch_name,
-                },
-            )
-
-            return True, "File updated!", response
-        except GithubAPIError as e:
-            if e.response_status_code != 404:
-                raise e
-
-            endpoint = f"/repos{repository_path}/contents/{file_path}"
-            response = await self.gh.put(
-                endpoint,
-                data={
-                    "message": f"Create {file_path}",
-                    "content": content,
-                    "branch": branch_name,
-                },
-            )
-
-            return True, "File created!", response
 
     async def project_autocomplete(
         self, interaction: discord.Interaction, current: str
@@ -276,7 +204,7 @@ class Github(commands.Cog):
         repository_path = urlparse(project.github_url).path
         endpoint = f"/repos{repository_path}/hooks"
 
-        data = await self.gh.post(
+        data = await self.bot.gh.post(
             endpoint=endpoint,
             data={
                 "name": "web",

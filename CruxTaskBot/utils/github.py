@@ -1,3 +1,5 @@
+import base64
+from urllib.parse import urlparse
 import jwt
 import time
 import aiohttp
@@ -199,3 +201,69 @@ class GithubRequestsManager:
                 return await response.json()
             else:
                 raise GithubAPIError(response.status, await response.text())
+
+    async def create_branch(self, repo_url: str, branch_name: str):
+        repository_path = urlparse(repo_url).path
+        endpoint = f"/repos{repository_path}/branches"
+
+        data = await self.get(endpoint)
+
+        if not data:
+            return False, "No branches found!"
+
+        branches = [branch["name"] for branch in data]
+        if branch_name in branches:
+            return True, "Branch already exists!"
+
+        endpoint = f"/repos{repository_path}/git/refs"
+        response = await self.post(
+            endpoint,
+            data={
+                "ref": f"refs/heads/{branch_name}",
+                "sha": data[0]["commit"]["sha"],
+            },
+        )
+
+        return True, "Branch created!", response
+
+    # TODO: Test if it works in directories
+    async def add_file_to_branch(
+        self, repo_url: str, branch_name: str, file_path: str, content: str
+    ):
+        """
+        This function adds a file to a branch in a GitHub repository. If it already exists it will be overwritten.
+        """
+
+        repository_path = urlparse(repo_url).path
+        endpoint = f"/repos{repository_path}/contents/{file_path}"
+        content = base64.b64encode(content.encode()).decode()
+        try:
+            data = await self.get(endpoint, params={"ref": branch_name})
+            sha = data["sha"]
+
+            response = await self.put(
+                endpoint,
+                data={
+                    "message": f"Update {file_path}",
+                    "content": content,
+                    "sha": sha,
+                    "branch": branch_name,
+                },
+            )
+
+            return True, "File updated!", response
+        except GithubAPIError as e:
+            if e.response_status_code != 404:
+                raise e
+
+            endpoint = f"/repos{repository_path}/contents/{file_path}"
+            response = await self.put(
+                endpoint,
+                data={
+                    "message": f"Create {file_path}",
+                    "content": content,
+                    "branch": branch_name,
+                },
+            )
+
+            return True, "File created!", response

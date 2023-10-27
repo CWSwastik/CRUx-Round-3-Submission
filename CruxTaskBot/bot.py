@@ -11,7 +11,7 @@ import platform
 from colorama import Back, Style, Fore
 
 from utils import Database
-from utils.github import GithubAPIError
+from utils.github import GithubAPIError, GithubRequestsManager
 
 try:
     import dotenv
@@ -49,6 +49,12 @@ class CruxTaskBot(commands.Bot):
     def __init__(self):
         self.config = Config()
         self.db = Database()
+        self.gh = GithubRequestsManager(
+            self.bot.config.github_app_id,
+            self.bot.config.github_private_key,
+            self.bot.config.github_installation_id,
+            self.bot.session,
+        )
 
         intents = Intents.default()
         intents.members = True

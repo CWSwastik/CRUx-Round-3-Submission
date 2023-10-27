@@ -99,17 +99,35 @@ async def generate_documentation(ctx):
                 files.append(file)
             else:
                 for f in os.listdir(os.path.join(folder.uri.fs_path, file)):
-                    if os.path.isfile(file):
-                        files.append(f)
+                    fp = os.path.join(folder.uri.fs_path)
+                    p = os.path.join(folder.uri.fs_path, fp)
+                    if os.path.isfile(p):
+                        files.append(fp)
 
     file_picker = QuickPick(files, QuickPickOptions(title="Select a file"))
     file = await ctx.window.show(file_picker)
     if not file:
         return
-    return await ctx.window.show(InfoMessage("Generating documentation..."))
-    box = InputBox()
-    await ctx.window.show(InfoMessage("Generating documentation..."))
-    await ctx.window.show(InfoMessage("Documentation generated"))
+
+    inp_box = InputBox("Enter the output path for the documentation")
+    output_path = await ctx.window.show(inp_box)
+    if not output_path:
+        return
+    os.chdir(folder.uri.fs_path)
+    with open(output_path, "w") as f:
+        f.write(f"Documentation generated for {file}")
+
+    res = await ctx.window.show(
+        InfoMessage(
+            "Documentation generated, would you like to push it to github?",
+            ["Yes", "No"],
+        )
+    )
+    if res == "Yes":
+        # await ctx.git.add(output_path)
+        # await ctx.git.commit("Documentation generated")
+        # await ctx.git.push()
+        await ctx.window.show(InfoMessage("Pushed to github"))
 
 
 ext.run()
