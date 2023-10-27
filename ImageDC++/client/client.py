@@ -74,5 +74,12 @@ class SocketIOClient:
 
     def download_images(self, images, to_path):
         zipfile = self.sio.call("download_images", images, timeout=5)
-        with open(to_path, "wb") as f:
-            f.write(zipfile)
+        try:
+            with open(to_path, "wb") as f:
+                f.write(zipfile)
+            return True, "Images downloaded successfully!"
+        except PermissionError:
+            return (
+                False,
+                "Permission denied, you may have not provided a correct file path (ending in .zip)!",
+            )

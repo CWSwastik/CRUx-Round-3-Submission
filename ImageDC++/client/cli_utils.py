@@ -58,7 +58,15 @@ class CLIUtils:
         print("[-] LOG: " + message)
 
     def log_warning(self, message):
-        print(Fore.YELLOW + "[!] WARNING: " + message + Style.RESET_ALL)
+        print(
+            "["
+            + Fore.YELLOW
+            + "!"
+            + Style.RESET_ALL
+            + "] WARNING: "
+            + message
+            + Style.RESET_ALL
+        )
 
     def log_error(self, message):
         print(

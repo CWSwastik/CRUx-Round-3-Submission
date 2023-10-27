@@ -8,9 +8,12 @@ def main():
     cli.display_title()
 
     name = cli.get_text_input("name", "What's your name?")
+    if not name:
+        cli.log_warning("No name provided. Using default name: 'Anonymous'")
+        name = "Anonymous"
 
     server_url = (
-        cli.get_text_input("server_url", "Enter server url:") or "http://localhost:8080"
+        cli.get_text_input("server_url", "Enter server url") or "http://localhost:8080"
     )
 
     client = SocketIOClient(server_url)
@@ -57,7 +60,10 @@ def main():
                     cli.log_error(str(e))
 
         elif choice == "Download Images":
-            query = cli.get_text_input("query", "Enter search query")
+            query = (
+                cli.get_text_input("query", "Enter search query (default: your name)")
+                or name
+            )
             with cli.spinner(text="Searching for images..."):
                 cli.wait(0.3)
                 images = client.search_for_images(query)
@@ -75,7 +81,7 @@ def main():
 
                 result = cli.get_selected_items(
                     "choices",
-                    "Please choose the images that you'd like to download",
+                    "Please choose the images that you'd like to download (space to select, enter to confirm)",
                     display_text,
                 )
                 result = [display_text[i] for i in result]
@@ -84,15 +90,18 @@ def main():
                     print("[!] Not downloading any images as none were selected.")
                     continue
                 zip_path = cli.get_path(
-                    "path", "Please enter the output path (ending in .zip)"
+                    "path", "Please enter the output file path (ending in .zip)"
                 )
                 with cli.spinner("Downloading images...", color="green") as spinner:
                     cli.wait(0.3)
-                    client.download_images(result, zip_path)
-                    spinner.text = (
-                        f"{len(result)}/{len(images)} Images downloaded to {zip_path}!"
-                    )
-                    spinner.ok("[✓]")
+                    result = client.download_images(result, zip_path)
+                    if result[0]:
+                        spinner.text = f"{len(result)}/{len(images)} Images downloaded to {zip_path}!"
+                        spinner.ok("[✓]")
+                    else:
+                        spinner.text = f"Failed to download images: {result[1]}"
+                        spinner.color = "red"
+                        spinner.fail("[X]")
         else:
             break
 
