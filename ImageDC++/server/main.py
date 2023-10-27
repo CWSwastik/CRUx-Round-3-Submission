@@ -2,7 +2,7 @@ import socketio
 import base64
 from aiohttp import web
 from fuzzywuzzy import process
-from utils import User, zip_images
+from utils import User, zip_images, ensure_non_clashing_name
 
 sio = socketio.AsyncServer(max_http_buffer_size=10_000_000)  # 10 MB/img
 app = web.Application()
@@ -15,7 +15,12 @@ images: [str, str] = {}
 @sio.event
 def connect(sid, environ):
     # TODO: Maybe make sure the same name isnt already there
-    user = User(sid, environ.get("HTTP_NAME"))
+    name = environ.get("HTTP_NAME")
+    names = [user.name for user in users.values()]
+
+    name = ensure_non_clashing_name(name, names)
+
+    user = User(sid, name)
     users[sid] = user
     print("Connect: ", user)
 
@@ -43,6 +48,7 @@ async def search(sid, query):
 
     # Fuzzy search
     for matched_img in process.extract(query, images.keys()):
+        # Don't show the user's own images
         if matched_img[0].startswith(user.name):
             continue
 

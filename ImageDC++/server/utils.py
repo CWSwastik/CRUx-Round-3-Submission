@@ -14,6 +14,17 @@ class User:
         return f"<User name={self.name} sid={self.sid}>"
 
 
+def ensure_non_clashing_name(name, names):
+    modified_name = name
+    counter = 1
+
+    while modified_name in names:
+        counter += 1
+        modified_name = f"{name}{counter}"
+
+    return modified_name
+
+
 def zip_images(images: Dict[str, bytes]) -> bytes:
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zipf:
