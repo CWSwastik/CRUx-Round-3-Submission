@@ -1,10 +1,12 @@
 import os
 import vscode
 import aiohttp
+import asyncio
 from typing import List
 from vscode import InfoMessage, InputBox, WebviewPanel, QuickPick, QuickPickOptions
 
 ext = vscode.Extension("Crux Task Extension")
+ext.server_url = None
 
 # get index html path
 index_html_path = os.path.join(os.path.dirname(__file__), "index.html")
@@ -47,14 +49,19 @@ def get_formatted_html(tasks: List[dict]) -> str:
 @ext.command()
 async def show_crux_tasks_window(ctx):
     """Show the crux tasks window as a webview"""
+    if ext.server_url is None:
+        box = InputBox(
+            title="Authentication URL",
+            prompt="Run /authenticate-extension on the discord bot and enter the url it generates here",
+        )
+        url = await ctx.window.show(box)
+        if not url:
+            return
 
-    box = InputBox(
-        title="Authentication URL",
-        prompt="Run /authenticate-extension on the discord bot and enter the url it generates here",
-    )
-    url = await ctx.window.show(box)
-    if not url:
-        return
+        ext.server_url = url
+    else:
+        url = ext.server_url
+
     session = aiohttp.ClientSession()
     async with session.get(url) as resp:
         res = await resp.json()
@@ -88,6 +95,19 @@ async def show_crux_tasks_window(ctx):
 async def generate_documentation(ctx):
     """Generate documentation for the current workspace"""
 
+    if ext.server_url is None:
+        box = InputBox(
+            title="Authentication URL",
+            prompt="Run /authenticate-extension on the discord bot and enter the url it generates here",
+        )
+        url = await ctx.window.show(box)
+        if not url:
+            return
+
+        ext.server_url = url
+    else:
+        url = ext.server_url
+
     # get all files in the workspace
     folders = await ctx.workspace.get_workspace_folders()
     files = []
@@ -95,27 +115,49 @@ async def generate_documentation(ctx):
     # TODO: use os.walk
     for folder in folders:
         for file in os.listdir(folder.uri.fs_path):
-            if os.path.isfile(file):
+            fp = os.path.join(folder.uri.fs_path, file)
+            if os.path.isfile(fp):
                 files.append(file)
             else:
-                for f in os.listdir(os.path.join(folder.uri.fs_path, file)):
-                    fp = os.path.join(folder.uri.fs_path)
-                    p = os.path.join(folder.uri.fs_path, fp)
+                for f in os.listdir(fp):
+                    file_path = os.path.join(file, f)
+                    p = os.path.join(folder.uri.fs_path, file_path)
                     if os.path.isfile(p):
-                        files.append(fp)
+                        files.append(file_path)
 
     file_picker = QuickPick(files, QuickPickOptions(title="Select a file"))
     file = await ctx.window.show(file_picker)
     if not file:
         return
+    file = file.label
 
     inp_box = InputBox("Enter the output path for the documentation")
     output_path = await ctx.window.show(inp_box)
+
     if not output_path:
         return
     os.chdir(folder.uri.fs_path)
+
+    with open(file, "r") as f:
+        content = f.read()
+
+    coro = ctx.window.show(
+        InfoMessage(
+            "Generating documentation... (it takes a while, please wait even if this message disappears)"
+        )
+    )
+    asyncio.create_task(coro)
+
+    base_url = url.split("/tasks")[0]
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            base_url + "/generate-documentation", json={"content": content}
+        ) as resp:
+            res = await resp.json()
+
+    generated_docs = res["docs"]
     with open(output_path, "w") as f:
-        f.write(f"Documentation generated for {file}")
+        f.write(generated_docs)
 
     res = await ctx.window.show(
         InfoMessage(
@@ -124,9 +166,22 @@ async def generate_documentation(ctx):
         )
     )
     if res == "Yes":
-        # await ctx.git.add(output_path)
-        # await ctx.git.commit("Documentation generated")
-        # await ctx.git.push()
+        # get repo url
+        repo_url = await ctx.window.show(InputBox("Enter the repository url"))
+        if not repo_url:
+            return
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                base_url + "/push-to-github",
+                json={
+                    "content": generated_docs,
+                    "file_path": output_path,
+                    "repo_url": repo_url,
+                },
+            ) as resp:
+                res = await resp.json()
+
         await ctx.window.show(InfoMessage("Pushed to github"))
 
 

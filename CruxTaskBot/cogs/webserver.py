@@ -3,6 +3,7 @@ import asyncio
 from aiohttp import web
 from discord.ext import commands
 from discord import app_commands
+from utils import generate_documentation
 
 
 class Webserver(commands.Cog):
@@ -25,6 +26,25 @@ class Webserver(commands.Cog):
             # TODO: check correct user
             await self.bot.db.set_task_status(data["id"], status)
             return web.Response(text="OK")
+
+        async def generate_documentation_handler(request):
+            data = await request.json()
+            content = data["content"]
+            docs = await generate_documentation(content)
+            return web.json_response({"docs": docs})
+
+        async def push_to_github_handler(request):
+            data = await request.json()
+            content = data["content"]
+            file_path = data["file_path"]
+            repo_url = data["repo_url"]
+
+            await self.bot.gh.create_branch(repo_url, "bot-docs")
+            res = await self.bot.gh.add_file_to_branch(
+                repo_url, "bot-docs", file_path, content
+            )
+
+            return web.json_response({"url": res[-1]["content"]["html_url"]})
 
         async def webhook_handler(request):
             data = await request.json()
@@ -50,6 +70,8 @@ class Webserver(commands.Cog):
         app.router.add_get("/", root_handler)
         app.router.add_get("/tasks/{user_id}", get_task_handler)
         app.router.add_post("/tasks/{user_id}", post_task_handler)
+        app.router.add_post("/generate-documentation", generate_documentation_handler)
+        app.router.add_post("/push-to-github", push_to_github_handler)
         app.router.add_post("/webhook", webhook_handler)
         runner = web.AppRunner(app)
         await runner.setup()

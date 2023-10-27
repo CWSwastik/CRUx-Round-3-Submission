@@ -144,7 +144,7 @@ class Github(commands.Cog):
                 project = project[0]
                 await self.gh.create_branch(project.github_url, "bot-docs")
                 res = await self.gh.add_file_to_branch(
-                    project, "bot-docs", fp, markdown_file_content
+                    project.github_url, "bot-docs", fp, markdown_file_content
                 )
                 await interaction.followup.send(
                     f"Documentation pushed to [bot-docs]({res[-1]['content']['html_url']}) branch!"

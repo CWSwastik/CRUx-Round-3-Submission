@@ -49,12 +49,6 @@ class CruxTaskBot(commands.Bot):
     def __init__(self):
         self.config = Config()
         self.db = Database()
-        self.gh = GithubRequestsManager(
-            self.bot.config.github_app_id,
-            self.bot.config.github_private_key,
-            self.bot.config.github_installation_id,
-            self.bot.session,
-        )
 
         intents = Intents.default()
         intents.members = True
@@ -73,6 +67,8 @@ class CruxTaskBot(commands.Bot):
             ),
         )
 
+        self.gh = None  # filled in on_ready
+
         self.tree.on_error = self.on_tree_error
 
     @property
@@ -89,6 +85,12 @@ class CruxTaskBot(commands.Bot):
 
     async def on_ready(self):
         await self.db.create_tables()
+        self.gh = GithubRequestsManager(
+            self.config.github_app_id,
+            self.config.github_private_key,
+            self.config.github_installation_id,
+            self.session,
+        )
 
         prfx = (
             Back.BLACK
