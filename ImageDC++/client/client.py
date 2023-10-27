@@ -8,6 +8,10 @@ from socketio.exceptions import ConnectionError as sioConnectionError
 
 
 class SocketIOClient:
+    """
+    This class represents a client that communicates with the server using SocketIO.
+    """
+
     def __init__(self, server_url):
         self.server_url = server_url
         self.sio = socketio.Client()
@@ -33,9 +37,15 @@ class SocketIOClient:
         self.sio.disconnect()
 
     def _is_not_image(self, path):
+        """
+        Check if a file at the provided path is not an image.
+        """
         return imghdr.what(path) is None
 
     def upload_image(self, path):
+        """
+        Upload a single image file to the server.
+        """
         if self._is_not_image(path):
             raise ValueError("The provided file is not an image!")
 
@@ -46,6 +56,10 @@ class SocketIOClient:
         self.sio.emit("upload_image", data=data)
 
     def upload_folder(self, folder_path):
+        """
+        Upload all image files from a folder to the server.
+        """
+
         count = 0  # Keep a track of the number of files uploaded
         folder_name = Path(folder_path).name
 
@@ -70,10 +84,18 @@ class SocketIOClient:
         return count
 
     def search_for_images(self, query):
+        """
+        Search for images on the server based on a query.
+        """
+
         result = self.sio.call("search", query, timeout=5)
         return result
 
     def download_images(self, images, to_path):
+        """
+        Download selected images from the server and save them to a ZIP file.
+        """
+
         zipfile = self.sio.call("download_images", images, timeout=5)
         try:
             with open(to_path, "wb") as f:

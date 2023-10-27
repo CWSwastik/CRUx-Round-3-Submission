@@ -7,6 +7,11 @@ from colorama import just_fix_windows_console, Fore, Style
 
 
 class CLIUtils:
+    """
+    This class contains utility functions for handling command-line interactions.
+
+    """
+
     def __init__(self) -> None:
         just_fix_windows_console()
         self.spinner = yaspin
