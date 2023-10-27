@@ -1,1 +1,41 @@
 # ImageDC++
+
+ImageDC++ is a command-line tool for sharing and retrieving images within a local network. It allows users to easily upload, download and search for images uploaded by other users.
+
+![image](https://github.com/CWSwastik/CRUx-Round-3-Submission/assets/110041714/aefdc620-7652-4313-bfb0-b0e389f4c54f)
+
+
+## Features
+
+- **Image Sharing**: Share your image files with other users on the local network.
+- **Search for Images**: Search for images shared by other users based on keywords or queries.
+- **Download Images**: Download images from other users' shared collections.
+
+## Installation & Setup
+
+To get started with ImageDC++, follow these steps:
+
+1. Clone the repository to your local machine.
+```bash
+git clone https://github.com/CWSwastik/CRUx-Round-3-Submission
+```
+
+2. cd into ImageDC++
+```bash
+cd ImageDC++
+```  
+3. Install the dependencies
+```bash
+pip install -r requirements.txt
+```
+
+4. To run the server or client, run the main.py in that directory
+```bash
+python server/main.py
+python client/main.py
+```
+
+5. Optionally you may run the server in debug mode and you may even specify a host and port number to host the server on.
+```bash
+ python server/main.py debug=True host="0.0.0.0" port=8080
+```
