@@ -9,7 +9,9 @@ def main():
 
     name = cli.get_text_input("name", "What's your name?")
 
-    server_url = "http://localhost:8080"
+    server_url = (
+        cli.get_text_input("server_url", "Enter server url:") or "http://localhost:8080"
+    )
 
     client = SocketIOClient(server_url)
     with cli.spinner(text="Connecting to the server...", color="green") as spinner:
