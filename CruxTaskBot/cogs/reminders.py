@@ -61,7 +61,7 @@ class Reminders(commands.Cog):
                     and task.status != "Completed"
                 ):
                     user = await self.bot.db.fetch_user(task.assignee)
-                    if not user:  # user didn't set email
+                    if user is None or user.email is None:  # user didn't set email
                         continue
 
                     subject = "Crux Task Deadline Reminder"
