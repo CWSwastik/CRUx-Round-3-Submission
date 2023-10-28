@@ -8,7 +8,7 @@ from vscode import InfoMessage, InputBox, WebviewPanel, QuickPick, QuickPickOpti
 ext = vscode.Extension("Crux Task Extension")
 ext.server_url = None
 ext.panel = None
-# get index html path
+
 index_html_path = os.path.join(os.path.dirname(__file__), "index.html")
 with open(index_html_path, "r") as f:
     HTML_TEMPLATE = f.read()
@@ -149,18 +149,12 @@ async def generate_documentation(ctx):
     folders = await ctx.workspace.get_workspace_folders()
     files = []
 
-    # TODO: use os.walk
     for folder in folders:
-        for file in os.listdir(folder.uri.fs_path):
-            fp = os.path.join(folder.uri.fs_path, file)
-            if os.path.isfile(fp):
-                files.append(file)
-            else:
-                for f in os.listdir(fp):
-                    file_path = os.path.join(file, f)
-                    p = os.path.join(folder.uri.fs_path, file_path)
-                    if os.path.isfile(p):
-                        files.append(file_path)
+        base_path = folder.uri.fs_path
+        for root, _, filenames in os.walk(base_path):
+            for filename in filenames:
+                relative_path = os.path.relpath(os.path.join(root, filename), base_path)
+                files.append(relative_path)
 
     file_picker = QuickPick(files, QuickPickOptions(title="Select a file"))
     file = await ctx.window.show(file_picker)
@@ -203,7 +197,6 @@ async def generate_documentation(ctx):
         )
     )
     if res == "Yes":
-        # get repo url
         repo_url = await ctx.window.show(InputBox("Enter the repository url"))
         if not repo_url:
             return
