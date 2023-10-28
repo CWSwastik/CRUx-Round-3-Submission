@@ -7,32 +7,55 @@ from vscode import InfoMessage, InputBox, WebviewPanel, QuickPick, QuickPickOpti
 
 ext = vscode.Extension("Crux Task Extension")
 ext.server_url = None
-
+ext.panel = None
 # get index html path
 index_html_path = os.path.join(os.path.dirname(__file__), "index.html")
 with open(index_html_path, "r") as f:
     HTML_TEMPLATE = f.read()
 
+styles_css_path = os.path.join(os.path.dirname(__file__), "styles.css")
+with open(styles_css_path, "r") as f:
+    STYLES = "<style>" + f.read() + "</style>"
+
 
 def get_formatted_html(tasks: List[dict]) -> str:
-    # display tasks in 3 groups, Assigned, In Progress, Completed
-    # add a button next to each task to move it to the next group
+    """
+    Generates formatted HTML for displaying tasks in three groups: Assigned, In Progress, and Completed,
+    with buttons to move tasks between the groups.
 
-    task_list = "<div>"
-    task_list += "<div><h3>Assigned</h3>"
+    Args:
+    tasks (List[dict]): A list of task dictionaries, each containing at least 'title', 'status', and 'id' fields.
+
+    Returns:
+    str: Formatted HTML string representing the tasks grouped by status with interactive buttons.
+    """
+
+    assigned_tasks = []
+    in_progress_tasks = []
+    completed_tasks = []
+
     for task in tasks:
         if task["status"] == "Assigned":
-            task_list += f"<div> {task['title']} <button onclick='start({task['id']})'>Start</button> </div>"
+            assigned_tasks.append(task)
+        elif task["status"] == "In Progress":
+            in_progress_tasks.append(task)
+        elif task["status"] == "Completed":
+            completed_tasks.append(task)
+
+    task_list = "<div class='task-container'>"
+    task_list += "<div class='task-group'><h3>Assigned</h3>"
+    for task in assigned_tasks:
+        task_list += f"<div class='task-item'> {task['title']} <button class='task-button' onclick='start({task['id']})'>Start</button> </div>"
     task_list += "</div>"
-    task_list += "<div><h3>In Progress</h3>"
-    for task in tasks:
-        if task["status"] == "In Progress":
-            task_list += f"<div> {task['title']} <button onclick='complete({task['id']})'>Complete</button> </div>"
+
+    task_list += "<div class='task-group'><h3>In Progress</h3>"
+    for task in in_progress_tasks:
+        task_list += f"<div class='task-item'> {task['title']} <button class='task-button' onclick='complete({task['id']})'>Complete</button> </div>"
     task_list += "</div>"
-    task_list += "<div><h3>Completed</h3>"
-    for task in tasks:
-        if task["status"] == "Completed":
-            task_list += f"<div> {task['title']} </div>"
+
+    task_list += "<div class='task-group'><h3>Completed</h3>"
+    for task in completed_tasks:
+        task_list += f"<div class='task-item'> {task['title']} </div>"
     task_list += "</div>"
 
     script = """
@@ -43,7 +66,7 @@ def get_formatted_html(tasks: List[dict]) -> str:
     </script>
     """
 
-    return HTML_TEMPLATE.format(body=task_list, script=script)
+    return HTML_TEMPLATE.format(body=task_list, script=script, styles=STYLES)
 
 
 @ext.command()
@@ -62,12 +85,16 @@ async def show_crux_tasks_window(ctx):
     else:
         url = ext.server_url
 
+    if ext.panel is not None:
+        return await ctx.window.show(InfoMessage("Crux Tasks window is already open"))
+
     session = aiohttp.ClientSession()
     async with session.get(url) as resp:
         res = await resp.json()
 
     panel = WebviewPanel("Crux Tasks", vscode.ViewColumn.Two)
     await ctx.window.create_webview_panel(panel)
+    ext.panel = panel
 
     async def on_message(data):
         if data["name"] == "start":
@@ -89,6 +116,16 @@ async def show_crux_tasks_window(ctx):
 
     panel.on_message = on_message
     await panel.set_html(get_formatted_html(res))
+
+    while panel.running:
+        async with session.get(url) as resp:
+            res = await resp.json()
+
+        await panel.set_html(get_formatted_html(res))
+        await asyncio.sleep(10)  # Refresh every 10 seconds
+
+    ext.panel = None
+    await session.close()
 
 
 @ext.command()

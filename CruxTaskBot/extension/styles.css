@@ -1,0 +1,33 @@
+.task-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.task-group {
+  flex: 1;
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid #555;
+  border-radius: 5px;
+  background-color: #444;
+  text-align: center;
+  width: 90%;
+}
+
+.task-item {
+  margin: 5px 0;
+}
+
+.task-button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.task-button:hover {
+  background-color: #0056b3;
+}
