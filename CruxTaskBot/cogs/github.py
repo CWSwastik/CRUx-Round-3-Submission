@@ -126,7 +126,6 @@ class Github(commands.Cog):
                 f"No data found for `{github_username}`."
             )
 
-    # TODO: Check if it works for organizations
     @app_commands.command(
         name="generate-docs",
         description="Create documentation for a GitHub repository file!",

@@ -32,3 +32,4 @@ venv
 package-lock.json
 package.json
 extension.js
+*.vsix
