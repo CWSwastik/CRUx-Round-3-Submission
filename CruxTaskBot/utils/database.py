@@ -281,7 +281,7 @@ class Database:
         await self.execute(
             """
                 INSERT INTO users (id, name, github, email)
-                VALUES (?, ?, ?);
+                VALUES (?, ?, ?, ?);
                 """,
             user.id,
             user.name,

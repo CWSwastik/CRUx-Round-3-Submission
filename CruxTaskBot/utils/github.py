@@ -107,7 +107,9 @@ class GithubRequestsManager:
                     data["expires_at"][:-1]
                 )
             else:
-                raise GithubAPIError(response.status, await response.text())
+                raise GithubAPIError(
+                    response.status, (await response.json())["message"]
+                )
 
     @property
     def headers(self) -> dict:
@@ -154,7 +156,9 @@ class GithubRequestsManager:
             if response.status in (200, 201, 202):
                 return await response.json()
             else:
-                raise GithubAPIError(response.status, await response.text())
+                raise GithubAPIError(
+                    response.status, (await response.json())["message"]
+                )
 
     async def post(self, endpoint: str, data: dict) -> dict:
         """
@@ -177,7 +181,9 @@ class GithubRequestsManager:
             if response.status in (200, 201, 202):
                 return await response.json()
             else:
-                raise GithubAPIError(response.status, await response.text())
+                raise GithubAPIError(
+                    response.status, (await response.json())["message"]
+                )
 
     async def put(self, endpoint: str, data: dict) -> dict:
         """
@@ -200,7 +206,9 @@ class GithubRequestsManager:
             if response.status in (200, 201, 202):
                 return await response.json()
             else:
-                raise GithubAPIError(response.status, await response.text())
+                raise GithubAPIError(
+                    response.status, (await response.json())["message"]
+                )
 
     async def create_branch(self, repo_url: str, branch_name: str):
         repository_path = urlparse(repo_url).path

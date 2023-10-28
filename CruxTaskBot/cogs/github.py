@@ -1,23 +1,21 @@
-import base64
 import discord
+import datetime
 from io import StringIO
 from discord.ext import commands
 from discord import app_commands
-from utils.models import Project, Task
+from utils.models import Project
 from typing import List, Optional
 from urllib.parse import urlparse
+from utils.views import Paginator
 from utils import generate_documentation, extract_github_file_content
-from utils.github import GithubAPIError
 
 
-# TODO: Permissions check
 class Github(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
-    # TODO: Imporve display of activity
     @app_commands.command(
-        name="github_activity",
+        name="github-activity",
         description="View recent GitHub activity for a user!",
     )
     @app_commands.describe(
@@ -61,16 +59,64 @@ class Github(commands.Cog):
                 for event in data
                 if event["type"] in ["PullRequestEvent", "IssuesEvent", "PushEvent"]
             ]
+
             if activity:
-                activity_message = (
-                    "Recent GitHub Activity for " + github_username + ":\n\n"
-                )
+                embeds = []
+
                 for event in activity:
+                    emb = discord.Embed(
+                        title="Recent GitHub Activity for " + github_username,
+                        color=discord.Color.random(),
+                    )
                     event_type = event["type"]
                     repo_name = event["repo"]["name"]
-                    created_at = event["created_at"]
-                    activity_message += f"Type: {event_type}\nRepository: {repo_name}\nCreated At: {created_at}\n\n"
-                await interaction.response.send_message(activity_message)
+                    created_at = datetime.datetime.fromisoformat(event["created_at"])
+                    emb.description = f"**Event Type:** {event_type}\n"
+                    emb.add_field(
+                        name="Repository",
+                        value=f"[{repo_name}](https://github.com/{repo_name})",
+                        inline=False,
+                    )
+                    emb.add_field(
+                        name="Created",
+                        value=f"<t:{created_at.timestamp():.0f}:R>",
+                        inline=False,
+                    )
+
+                    if event_type == "PullRequestEvent":
+                        pull_request_title = event["payload"]["pull_request"]["title"]
+                        pull_request_action = event["payload"]["action"]
+                        emb.add_field(
+                            name="Pull Request",
+                            value=f"{pull_request_action} - {pull_request_title}",
+                            inline=False,
+                        )
+
+                    if event_type == "IssuesEvent":
+                        issue_title = event["payload"]["issue"]["title"]
+                        issue_action = event["payload"]["action"]
+                        emb.add_field(
+                            name="Issue",
+                            value=f"{issue_action} - {issue_title}",
+                            inline=False,
+                        )
+
+                    if event_type == "PushEvent":
+                        commits = event["payload"]["commits"]
+                        if commits:
+                            commit_messages = "\n".join(
+                                [commit["message"] for commit in commits]
+                            )
+                            emb.add_field(
+                                name="Commits", value=commit_messages, inline=False
+                            )
+
+                    embeds.append(emb)
+
+                embeds[0].set_footer(text=f"Page 1 of {len(embeds)}")
+                await interaction.response.send_message(
+                    embed=embeds[0], view=Paginator(interaction, embeds)
+                )
             else:
                 await interaction.response.send_message(
                     f"No recent GitHub activity found for `{github_username}`."

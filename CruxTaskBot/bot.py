@@ -147,6 +147,8 @@ class CruxTaskBot(commands.Bot):
             else:
                 send = interaction.response.send_message
 
-            return await send(f"Failed to fetch data from GitHub API ({error}).")
+            return await send(
+                f"Failed to fetch data from GitHub API ({error.original})."
+            )
         else:
             raise error
