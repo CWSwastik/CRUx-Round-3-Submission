@@ -188,8 +188,8 @@ class Github(commands.Cog):
             project = [p for p in projects if repository_name in p.github_url]
             if project:
                 project = project[0]
-                await self.gh.create_branch(project.github_url, "bot-docs")
-                res = await self.gh.add_file_to_branch(
+                await self.bot.gh.create_branch(project.github_url, "bot-docs")
+                res = await self.bot.gh.add_file_to_branch(
                     project.github_url, "bot-docs", fp, markdown_file_content
                 )
                 await interaction.followup.send(

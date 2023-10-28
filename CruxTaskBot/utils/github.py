@@ -234,7 +234,6 @@ class GithubRequestsManager:
 
         return True, "Branch created!", response
 
-    # TODO: Test if it works in directories
     async def add_file_to_branch(
         self, repo_url: str, branch_name: str, file_path: str, content: str
     ):

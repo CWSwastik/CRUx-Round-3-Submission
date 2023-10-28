@@ -112,7 +112,26 @@ class Webserver(commands.Cog):
                         for commit in commits
                     ]
                 )
-                embed.add_field(name="Commits", value=commit_messages, inline=False)
+                if commits:
+                    ref = data.get("ref")
+                    if ref:
+                        if ref.startswith("refs/heads/"):
+                            branch_name = ref[len("refs/heads/") :]
+                            embed.add_field(
+                                name="Branch", value=f"`{branch_name}`", inline=False
+                            )
+
+                    embed.add_field(name="Commits", value=commit_messages, inline=False)
+                else:
+                    ref = data.get("ref")
+                    if ref:
+                        if ref.startswith("refs/heads/"):
+                            branch_name = ref[len("refs/heads/") :]
+                            embed.add_field(
+                                name="Branch Created/Updated",
+                                value=f"The branch `{branch_name}` was created or updated.",
+                                inline=False,
+                            )
 
             await ch.send(embed=embed)
 

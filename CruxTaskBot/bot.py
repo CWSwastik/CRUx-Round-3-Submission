@@ -147,6 +147,11 @@ class CruxTaskBot(commands.Bot):
             else:
                 send = interaction.response.send_message
 
+            if error.original.response_status_code == 403:
+                return await send(
+                    "I don't have permissions to fetch data from this github repo, please make sure you've added me to the organization and set the correct installation id."
+                )
+
             return await send(
                 f"Failed to fetch data from GitHub API ({error.original})."
             )
