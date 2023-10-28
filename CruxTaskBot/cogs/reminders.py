@@ -1,5 +1,5 @@
 from discord.ext import commands
-from utils.models import Task
+from utils.models import Task, User
 
 import asyncio
 import datetime
@@ -26,7 +26,7 @@ class Reminders(commands.Cog):
 
         await self.smtp_client.send_message(message)
 
-    def construct_email_message(self, task: Task) -> str:
+    def construct_email_message(self, task: Task, user: User) -> str:
         time_until_deadline = task.deadline - datetime.datetime.now()
         deadline_message = ""
         if time_until_deadline.days > 0:
@@ -37,7 +37,7 @@ class Reminders(commands.Cog):
         deadline_message += f"{hours} hour(s) {minutes} minute(s)"
 
         message = (
-            f"Hi,\n\n"
+            f"Hi {user.name},\n\n"
             f"This is a reminder to let you know that you have a task with the following details:\n"
             f"Title: {task.title}\n"
             f"Description: {task.description}\n"
@@ -65,7 +65,7 @@ class Reminders(commands.Cog):
                         continue
 
                     subject = "Crux Task Deadline Reminder"
-                    message = self.construct_email_message(task)
+                    message = self.construct_email_message(task, user)
 
                     await self.send_mail(user.email, subject, message)
                     await self.bot.db.set_task_reminder(task.id, None)

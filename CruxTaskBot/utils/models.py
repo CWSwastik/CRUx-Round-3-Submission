@@ -37,10 +37,12 @@ class Project:
     github_url: str
     description: str
     id: Optional[int] = None
+    webhook_id: Optional[int] = None
 
 
 @dataclass
 class User:
     id: int
+    name: str
     github: Optional[str]
     email: Optional[str]

@@ -23,6 +23,7 @@ class Database:
                     channel BIGINT NOT NULL,
                     github TEXT NOT NULL,
                     description TEXT NOT NULL
+                    webhook_id BIGINT,
                 );
             """
             )
@@ -47,6 +48,7 @@ class Database:
                 """
                 CREATE TABLE IF NOT EXISTS users (
                     id BIGINT PRIMARY KEY NOT NULL,
+                    name TEXT NOT NULL,
                     github TEXT,
                     email TEXT
                 );
@@ -116,6 +118,18 @@ class Database:
             channel=data[3],
             github_url=data[4],
             description=data[5],
+            webhook_id=data[6],
+        )
+
+    # Set project webhook id
+    async def set_project_webhook_id(self, project_id: int, webhook_id: int) -> None:
+        await self.execute(
+            """
+                UPDATE projects SET webhook_id = ?
+                WHERE id = ?;
+                """,
+            webhook_id,
+            project_id,
         )
 
     # List all existing projects
@@ -130,6 +144,7 @@ class Database:
                 channel=project[3],
                 github_url=project[4],
                 description=project[5],
+                webhook_id=project[6],
             )
             for project in data
         ]
@@ -256,18 +271,20 @@ class Database:
 
         return User(
             id=data[0],
-            github=data[1],
-            email=data[2],
+            name=data[1],
+            github=data[2],
+            email=data[3],
         )
 
     # Create user
     async def create_user(self, user: User) -> None:
         await self.execute(
             """
-                INSERT INTO users (id, github, email)
+                INSERT INTO users (id, name, github, email)
                 VALUES (?, ?, ?);
                 """,
             user.id,
+            user.name,
             user.github,
             user.email,
         )

@@ -218,7 +218,7 @@ class Github(commands.Cog):
         )
 
         webhook_id = data["id"]
-        # TODO: Store this in database
+        await self.bot.db.set_project_webhook_id(project.id, webhook_id)
         return True, webhook_id
 
 

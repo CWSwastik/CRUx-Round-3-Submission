@@ -31,6 +31,7 @@ class Profile(commands.Cog):
 
         user = User(
             id=interaction.user.id,
+            name=interaction.user.global_name,
             github=github,
             email=email,
         )
