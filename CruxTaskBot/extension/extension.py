@@ -80,7 +80,7 @@ async def show_crux_tasks_window(ctx):
         url = await ctx.window.show(box)
         if not url:
             return
-
+        url = url.strip()
         ext.server_url = url
     else:
         url = ext.server_url
@@ -88,16 +88,21 @@ async def show_crux_tasks_window(ctx):
     if ext.panel is not None:
         return await ctx.window.show(InfoMessage("Crux Tasks window is already open"))
 
-    session = aiohttp.ClientSession()
-    async with session.get(url) as resp:
-        if resp.status != 200:
-            ext.panel = None
-            await session.close()
-            await ctx.window.show(InfoMessage("Invalid url, please reauthenticate."))
-            ext.server_url = None
-            return
-        res = await resp.json()
-
+    try:
+        session = aiohttp.ClientSession()
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                ext.panel = None
+                await session.close()
+                await ctx.window.show(InfoMessage("Invalid url, please reauthenticate."))
+                ext.server_url = None
+                return
+            res = await resp.json()
+    except aiohttp.InvalidURL:
+        await ctx.window.show(InfoMessage("Invalid url, please reauthenticate"))
+        ext.server_url = None
+        return
+    
     panel = WebviewPanel("Crux Tasks", vscode.ViewColumn.Two)
     await ctx.window.create_webview_panel(panel)
     ext.panel = panel
@@ -156,7 +161,7 @@ async def generate_documentation(ctx):
         url = await ctx.window.show(box)
         if not url:
             return
-
+        url = url.strip()
         ext.server_url = url
     else:
         url = ext.server_url
@@ -217,18 +222,22 @@ async def generate_documentation(ctx):
         if not repo_url:
             return
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                base_url + "/push-to-github",
-                json={
-                    "content": generated_docs,
-                    "file_path": output_path,
-                    "repo_url": repo_url,
-                },
-            ) as resp:
-                res = await resp.json()
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    base_url + "/push-to-github",
+                    json={
+                        "content": generated_docs,
+                        "file_path": output_path,
+                        "repo_url": repo_url,
+                    },
+                ) as resp:
+                    res = await resp.json()
 
-        await ctx.window.show(InfoMessage("Pushed to github"))
+            await ctx.window.show(InfoMessage("Pushed to github"))
+        except aiohttp.InvalidURL:
+            await ctx.window.show(InfoMessage("Invalid url, please reauthenticate"))
+            ext.server_url = None
 
 
 ext.run()

@@ -1,2 +1,2 @@
-vscode-ext==2.0.0a1
+vscode-ext==2.0.0a2
 aiohttp
