@@ -25,7 +25,6 @@ class Domains(enum.Enum):
     Other = "Other"
 
 
-# TODO: Permissions check
 class Projects(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -115,7 +114,6 @@ class Projects(commands.Cog):
                 and current.lower() in p.title.lower()
             ]
 
-    # create task command
     @app_commands.command(
         name="create-task",
         description="Create a task under a project and domain!",
@@ -208,7 +206,6 @@ class Projects(commands.Cog):
 
         return choices
 
-    # Update task status command
     @app_commands.command(
         name="update-task-status",
         description="Update the status of a task!",
@@ -245,13 +242,14 @@ class Projects(commands.Cog):
             f"Task `{task.title}` updated with status `{status}`."
         )
 
-    # Displays tasks for a user command
     @app_commands.command(
         name="view-tasks",
         description="View your tasks!",
     )
     async def view_tasks(self, interaction: discord.Interaction):
-        # display the users tasks in an embed with the deadline as a discord timestamp
+        """
+        This command displays the user's tasks in an embed with their deadlines.
+        """
 
         tasks = await self.bot.db.list_user_tasks(interaction.user.id)
         projects = await self.bot.db.list_all_projects()
@@ -270,7 +268,6 @@ class Projects(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    # View tasks command
     @app_commands.command(
         name="view-task-sheet",
         description="View the task sheet for a project!",
@@ -283,7 +280,7 @@ class Projects(commands.Cog):
     )
     async def view_task_sheet(self, interaction: discord.Interaction, project: str):
         """
-        This command displays the task list for a given project.
+        This command displays the task sheet for a given project.
         """
 
         project_obj = await self.bot.db.fetch_project(project)
@@ -334,16 +331,16 @@ class Projects(commands.Cog):
                 response_message.append(f"> **{member}**")
                 for task in member_tasks:
                     response_message.append(
-                        f"> - {task.title} - <t:{task.deadline.timestamp():.0f}> - {task.status}"
+                        f"> - {task.title}: {task.description} <t:{task.deadline.timestamp():.0f}> - {task.status}"
                     )
                 response_message.append("")
 
         final_response = "\n".join(response_message)
         return final_response or "No tasks to display for this project."
 
-    async def send_task_list_for_every_project(self):
+    async def send_task_sheet_for_every_project(self):
         """
-        Send task list for every project to its channel.
+        This method send's the task sheet for every project to its channel.
         """
         projects = await self.bot.db.list_all_projects()
         for project in projects:
@@ -354,11 +351,14 @@ class Projects(commands.Cog):
                 final_response, allowed_mentions=discord.AllowedMentions.none()
             )
 
-    # On ready, check how long it is from midnight and sleep until then
-    # when its midnight ruun the send_task_list_for_every_project function
-    # and then sleep until midnight again
     @commands.Cog.listener()
     async def on_ready(self):
+        """
+        On ready, check how long it is from midnight and sleep until then
+        when its midnight run the send_task_sheet_for_every_project function
+        and then sleep until midnight again.
+        """
+
         now = datetime.datetime.now()
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         if now > midnight:
@@ -368,7 +368,7 @@ class Projects(commands.Cog):
         await asyncio.sleep(time_to_sleep)
 
         while True:
-            await self.send_task_list_for_every_project()
+            await self.send_task_sheet_for_every_project()
             await asyncio.sleep(86400)
 
 
