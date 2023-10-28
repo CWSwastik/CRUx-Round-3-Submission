@@ -130,6 +130,16 @@ class CruxTaskBot(commands.Bot):
                 f"To use this command you need the {error.missing_role} role!",
                 ephemeral=True,
             )
+        elif isinstance(error, app_commands.MissingAnyRole):
+            return await interaction.response.send_message(
+                f"To use this command you need one of the following roles: {', '.join(error.missing_roles)}",
+                ephemeral=True,
+            )
+        elif isinstance(error, app_commands.BotMissingPermissions):
+            return await interaction.response.send_message(
+                f"I'm missing permissions to execute this command, please give me admin perms :(",
+                ephemeral=True,
+            )
         elif isinstance(error, app_commands.errors.CommandInvokeError) and isinstance(
             error.original, GithubAPIError
         ):
