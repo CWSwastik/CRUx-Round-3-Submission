@@ -19,6 +19,7 @@ class Domains(enum.Enum):
     App = "App"
     Automation = "Automation"
     Design = "Design"
+    UiUx = "UI/UX"
     Video = "Video"
     Audio = "Audio"
     Art = "Art"
@@ -331,7 +332,7 @@ class Projects(commands.Cog):
                 response_message.append(f"> **{member}**")
                 for task in member_tasks:
                     response_message.append(
-                        f"> - {task.title}: {task.description} <t:{task.deadline.timestamp():.0f}> - {task.status}"
+                        f"> - {task.title}: {task.description} - <t:{task.deadline.timestamp():.0f}> - {task.status}"
                     )
                 response_message.append("")
 
