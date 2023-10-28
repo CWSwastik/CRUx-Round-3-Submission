@@ -50,19 +50,71 @@ class Webserver(commands.Cog):
             data = await request.json()
             event_type = request.headers.get("X-GitHub-Event")
 
-            if event_type in ["issues", "pull_request", "push", "ping"]:
-                repository = data["repository"]["full_name"]
-                html_url = data["repository"]["html_url"]
-                projects = await self.bot.db.list_all_projects()
-                project = [p for p in projects if p.github_url == html_url]
-                if project:
-                    project = project[0]
-                    ch = self.bot.get_channel(project.channel)
-                    if not ch:
-                        ch = await self.bot.fetch_channel(project.channel)
+            if event_type not in ["issues", "pull_request", "push", "ping"]:
+                return web.Response(text="OK")
 
-                    # TODO: send a proper embed with more information
-                    await ch.send(f"New {event_type} event for {repository}!")
+            repository = data["repository"]["full_name"]
+            html_url = data["repository"]["html_url"]
+            projects = await self.bot.db.list_all_projects()
+            project = [p for p in projects if p.github_url == html_url]
+            if not project:
+                return web.Response(text="OK")
+
+            project = project[0]
+            ch = self.bot.get_channel(project.channel)
+            if not ch:
+                ch = await self.bot.fetch_channel(project.channel)
+
+            embed = discord.Embed(
+                title=f"New GitHub Event ({event_type}) for {repository}",
+                color=0x7289DA,
+            )
+
+            embed.add_field(
+                name="Repository",
+                value=f"[{repository}]({html_url})",
+                inline=False,
+            )
+
+            if event_type == "issues":
+                issue_title = data["issue"]["title"]
+                issue_url = data["issue"]["html_url"]
+                embed.add_field(
+                    name="Issue Title",
+                    value=f"[{issue_title}]({issue_url})",
+                    inline=False,
+                )
+                action = data["action"]
+                user = data["sender"]["login"]
+                embed.add_field(
+                    name="Action", value=f"{action} by {user}", inline=False
+                )
+
+            if event_type == "pull_request":
+                pr_title = data["pull_request"]["title"]
+                pr_url = data["pull_request"]["html_url"]
+                embed.add_field(
+                    name="Pull Request Title",
+                    value=f"[{pr_title}]({pr_url})",
+                    inline=False,
+                )
+                action = data["action"]
+                user = data["sender"]["login"]
+                embed.add_field(
+                    name="Action", value=f"{action} by {user}", inline=False
+                )
+
+            if event_type == "push":
+                commits = data["commits"]
+                commit_messages = "\n".join(
+                    [
+                        f"`{commit['message']}` by `{commit['author']['name']}`"
+                        for commit in commits
+                    ]
+                )
+                embed.add_field(name="Commits", value=commit_messages, inline=False)
+
+            await ch.send(embed=embed)
 
             return web.Response(text="OK")
 
