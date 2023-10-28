@@ -37,7 +37,9 @@ def get_credentials():
     return creds
 
 
-def create_event(credentials, summary, description, start, end):
+def create_event(
+    credentials: Credentials, summary: str, description: str, start: str, end: str
+) -> str:
     """
     Creates an event in the user's Google Calendar.
 
@@ -72,6 +74,7 @@ class GoogleCalendar(commands.Cog):
     async def task_autocomplete(self, interaction: discord.Interaction, current: str):
         """
         Autocomplete for the task argument of the add_to_calendar command.
+        Lets users select a task from the list of their tasks.
 
         Args:
             interaction (discord.Interaction): The interaction object
@@ -121,7 +124,7 @@ class GoogleCalendar(commands.Cog):
 
         task = [t for t in tasks if f"{t.project_id}:{t.id}" == task][0]
 
-        await interaction.response.defer()
+        await interaction.response.defer()  # Defer the response to avoid timeout
 
         start_time = task.deadline - datetime.timedelta(hours=1)
         end_time = task.deadline
@@ -144,8 +147,6 @@ class GoogleCalendar(commands.Cog):
             f"Task `{task.title}` added to your calendar! [Click here](<{event_link}>) to view the event.",
             ephemeral=True,
         )
-
-    # Optional TODO: Sync Gcal command
 
 
 async def setup(bot: commands.Bot) -> None:
