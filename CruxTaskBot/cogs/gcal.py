@@ -89,7 +89,7 @@ class GoogleCalendar(commands.Cog):
 
         choices = []
         for task in tasks:
-            if current in task.title:
+            if current.lower() in task.title.lower():
                 project = [p for p in projects if p.id == task.project_id][0]
                 formatted_task_title = project.title + " - " + task.title
                 task_value = f"{task.project_id}:{task.id}"

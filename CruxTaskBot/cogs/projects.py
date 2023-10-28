@@ -52,7 +52,7 @@ class Projects(commands.Cog):
         channel: Optional[discord.TextChannel],
     ):
         """
-        This command allows users with the 'Senate' role to create a project.
+        This command allows the Senate members to create a project.
         If the 'role' and 'channel' are not provided, this command creates them.
         The project details are stored in a database.
         """
@@ -114,6 +114,55 @@ class Projects(commands.Cog):
                 if p.role in [r.id for r in interaction.user.roles]
                 and current.lower() in p.title.lower()
             ]
+
+    # delete project command
+
+    @app_commands.command(
+        name="delete-project",
+        description="Delete a project",
+    )
+    @app_commands.describe(
+        project="The project to delete",
+        delete_role="Whether to delete the role associated with this project",
+        delete_channel="Whether to delete the channel associated with this project",
+    )
+    @app_commands.autocomplete(
+        project=project_autocomplete,
+    )
+    @app_commands.checks.has_role("Senate")
+    async def delete_project(
+        self,
+        interaction: discord.Interaction,
+        project: str,
+        delete_role: Optional[bool] = False,
+        delete_channel: Optional[bool] = False,
+    ):
+        """
+        This command allows the Senate members to delete a project.
+        """
+
+        project_obj = await self.bot.db.fetch_project(project)
+        if project_obj is None:
+            await interaction.response.send_message(
+                f"Project `{project}` not found.",
+                ephemeral=True,
+            )
+            return
+
+        if delete_role:
+            role = interaction.guild.get_role(project_obj.role)
+            await role.delete(reason=f"Project deleted by {interaction.user.name}")
+
+        if delete_channel:
+            channel = interaction.guild.get_channel(
+                project_obj.channel
+            ) or await self.bot.fetch_channel(project_obj.channel)
+            await channel.delete(reason=f"Project deleted by {interaction.user.name}")
+
+        await self.bot.db.delete_project(project_obj.id)
+        await interaction.response.send_message(
+            f"Project `{project}` deleted.",
+        )
 
     @app_commands.command(
         name="create-task",
@@ -241,6 +290,62 @@ class Projects(commands.Cog):
         await self.bot.db.set_task_status(task.id, status)
         await interaction.response.send_message(
             f"Task `{task.title}` updated with status `{status}`."
+        )
+
+    async def task_autocomplete_with_project(
+        self, interaction: discord.Interaction, current: str
+    ):
+        project = await self.bot.db.fetch_project(interaction.namespace.project)
+        if project is None:
+            return []
+
+        tasks = await self.bot.db.list_project_tasks(project.id)
+        choices = []
+        for task in tasks:
+            if current.lower() in task.title.lower():
+                choices.append(app_commands.Choice(name=task.title, value=task.title))
+        return choices
+
+    # Delete task command
+    @app_commands.command(name="delete-task", description="Delete a task")
+    @app_commands.describe(
+        project="The project to delete the task from",
+        task="The task to delete",
+    )
+    @app_commands.autocomplete(
+        project=project_autocomplete,
+        task=task_autocomplete_with_project,
+    )
+    @app_commands.checks.has_role("Senate")
+    async def delete_task(
+        self,
+        interaction: discord.Interaction,
+        project: str,
+        task: str,
+    ):
+        """
+        This command allows the Senate members to delete a task.
+        """
+        project_obj = await self.bot.db.fetch_project(project)
+        if project_obj is None:
+            return await interaction.response.send_message(
+                f"Project with title {project} not found!"
+            )
+
+        tasks = await self.bot.db.list_project_tasks(project_obj.id)
+
+        if task not in [t.title for t in tasks]:
+            await interaction.response.send_message(
+                f"A task with the title {task} doesn't exist in this project!",
+                ephemeral=True,
+            )
+            return
+
+        task = [t for t in tasks if t.title == task][0]
+
+        await self.bot.db.delete_task(task.id)
+        await interaction.response.send_message(
+            f"Task `{task.title}` deleted.",
         )
 
     @app_commands.command(
