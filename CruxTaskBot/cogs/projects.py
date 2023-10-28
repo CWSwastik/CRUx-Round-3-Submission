@@ -102,12 +102,17 @@ class Projects(commands.Cog):
     ):
         projects = await self.bot.db.list_all_projects()
         if "Senate" in [r.name for r in interaction.user.roles]:
-            return [app_commands.Choice(name=p.title, value=p.title) for p in projects]
+            return [
+                app_commands.Choice(name=p.title, value=p.title)
+                for p in projects
+                if current.lower() in p.title.lower()
+            ]
         else:
             return [
                 app_commands.Choice(name=p.title, value=p.title)
                 for p in projects
                 if p.role in [r.id for r in interaction.user.roles]
+                and current.lower() in p.title.lower()
             ]
 
     # create task command
@@ -193,7 +198,7 @@ class Projects(commands.Cog):
 
         choices = []
         for task in tasks:
-            if current in task.title:
+            if current.lower() in task.title.lower():
                 project = [p for p in projects if p.id == task.project_id][0]
                 formatted_task_title = project.title + " - " + task.title
                 task_value = f"{task.project_id}:{task.id}"

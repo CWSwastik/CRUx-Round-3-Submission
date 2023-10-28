@@ -160,7 +160,7 @@ class Github(commands.Cog):
                 value=project.title,
             )
             for project in projects
-            if current in project.title
+            if current.lower() in project.title.lower()
         ]
 
     @app_commands.command(

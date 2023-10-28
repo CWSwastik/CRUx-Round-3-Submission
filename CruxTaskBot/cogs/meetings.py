@@ -126,12 +126,17 @@ class Meetings(commands.Cog):
     ):
         projects = await self.bot.db.list_all_projects()
         if "Senate" in [r.name for r in interaction.user.roles]:
-            return [app_commands.Choice(name=p.title, value=p.title) for p in projects]
+            return [
+                app_commands.Choice(name=p.title, value=p.title)
+                for p in projects
+                if current.lower() in p.title.lower()
+            ]
         else:
             return [
                 app_commands.Choice(name=p.title, value=p.title)
                 for p in projects
                 if p.role in [r.id for r in interaction.user.roles]
+                and current.lower() in p.title.lower()
             ]
 
     @app_commands.command(
