@@ -71,6 +71,17 @@ def is_valid_github_repo_url(url):
 async def extract_github_file_content(
     session: aiohttp.ClientSession, github_file_url: str
 ):
+    """
+    Extracts the content of a file from a GitHub URL.
+
+    Args:
+        session (aiohttp.ClientSession): An aiohttp session.
+        github_file_url (str): The URL of the file to extract.
+
+    Returns:
+        str | None: The content of the file, or None if the file could not be found.
+    """
+
     async with session.get(github_file_url) as response:
         if response.status == 200:
             return await response.text()
@@ -78,9 +89,19 @@ async def extract_github_file_content(
 
 
 async def generate_documentation(file_content: str) -> str:
+    """
+    Generates documentation for a given code in markdown format.
+
+    Args:
+        file_content (str): The code to generate documentation for.
+
+    Returns:
+        str: The generated documentation.
+    """
+
     prompt = f"Generate documentation for this code in .MD format: ```{file_content}```"
     response = await openai.ChatCompletion.acreate(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
     )
-    return response.choices[0].message.content  # TODO: Somehow send the full response
+    return response.choices[0].message.content
