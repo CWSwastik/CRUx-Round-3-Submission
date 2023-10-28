@@ -24,7 +24,7 @@ CruxTaskBot is a powerful Discord bot designed for the CRUx server, providing a 
 
 ### GitHub Integration
 - **Track Pull Requests and Issues:** CruxTaskBot monitors user-generated pull requests and issues. When commits are pushed, the bot displays the relevant PR or issue in the Discord server.
-- **User Activity:** Allow users to view the activity, including authored pull requests and issues, of a specific user when prompted.
+- **User Activity:** Allows users to view the activity, including authored pull requests and issues, of a specific user when prompted.
 
 ### Documentation Generation
 - **Generate Documentation:** Create documentation files in Markdown format (.md) for source code files. The bot & extension can automatically generate documentation upon request.
@@ -43,12 +43,16 @@ CruxTaskBot is a powerful Discord bot designed for the CRUx server, providing a 
      git clone https://github.com/CWSwastik/CRUx-Round-3-Submission
      ```
 
-2. **Navigate to the Bot Directory**
+2. **Navigate to the Bot Directory and Install Dependencies**
    - Change your working directory to the CruxTaskBot folder:
      ```
      cd CruxTaskBot
      ```
-
+   - Install Dependencies
+     ```
+     pip install -r requirements.txt
+     ```
+     
 3. **Configure Environment Variables**
 
    - Create a `.env` file based on the provided `.env.example` file.
@@ -60,7 +64,6 @@ CruxTaskBot is a powerful Discord bot designed for the CRUx server, providing a 
         - Refer to https://discordpy.readthedocs.io/en/stable/discord.html for detailed instructions.
         - **IMPORTANT**: When inviting the bot to your server make sure the `bot` and `applications.commands` scope are turned on and the bot is invited with `Administrator` permisions.
         - Set the Discord token as the value for `DISCORD_TOKEN` in the `.env` file.
-
      2. **Email Setup**:
         - If you are using Gmail and have two-factor authentication (2FA) enabled, your email password must be replaced with a 16-digit App Password. Learn how to generate an App Password for SMTP [here](https://support.google.com/accounts/answer/185833?hl=en).
         - Set your email address as the value for `EMAIL_ID` and your generated email App Password as the value for `EMAIL_PASSWORD` in the `.env` file.
@@ -86,7 +89,9 @@ CruxTaskBot is a powerful Discord bot designed for the CRUx server, providing a 
         - After obtaining the Ngrok URL, set it as the value for `WEBSERVER_URL` in the `.env` file.
 
      6. **Google Calendar Setup**:
-        - Obtain the `credentials.json` file (for detailed instructions [click here](https://developers.google.com/calendar/api/quickstart/python)) and save it in the `CruxTaskBot` directory.  
+        - Obtain the `credentials.json` file (for detailed instructions [click here](https://developers.google.com/calendar/api/quickstart/python)) and save it in the `CruxTaskBot` directory.
+     7. **Database setup**:
+        - Create an empty file `crux.db` in the `data` directory in `CruxTaskBot`.
 
 4. **Run the Bot**
    - You are now ready to run CruxTaskBot. You can run it using the following command
@@ -106,6 +111,6 @@ CruxTaskBot is a powerful Discord bot designed for the CRUx server, providing a 
 You can view the bot's commands by typing a / and selecting the Bot. Run the command by clicking on it and providing the required parameters.
 
 ### Extension
-Open the command palette with `Ctrl+P` and run either `> Show Crux Task Window` or `> Generate Document`
+Open the command palette with `Ctrl+P` and run either `> Show Crux Task Window` or `> Generate Documentation`
    - You may need to wait a while for the extension to startup for the first time (it takes time to install the dependencies)
 Next, follow the steps as prompted by the extension.
