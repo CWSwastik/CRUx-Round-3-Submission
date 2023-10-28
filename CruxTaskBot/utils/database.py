@@ -22,8 +22,8 @@ class Database:
                     role BIGINT NOT NULL,
                     channel BIGINT NOT NULL,
                     github TEXT NOT NULL,
-                    description TEXT NOT NULL
-                    webhook_id BIGINT,
+                    description TEXT NOT NULL,
+                    webhook_id BIGINT
                 );
             """
             )

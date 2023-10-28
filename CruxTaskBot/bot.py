@@ -35,7 +35,6 @@ class Config:
         self.openai_api_key = os.environ["OPENAI_API_KEY"]
 
         self.webserver_url = os.environ["WEBSERVER_URL"]
-        self.github_token = os.environ["GITHUB_TOKEN"]
         self.github_app_id = os.environ["GITHUB_APP_ID"]
         self.github_installation_id = os.environ["GITHUB_INSTALLATION_ID"]
 

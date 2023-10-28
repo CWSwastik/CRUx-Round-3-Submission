@@ -78,7 +78,7 @@ class Projects(commands.Cog):
         )
         await self.bot.db.create_project(project)
         await interaction.response.send_message(
-            f"Project `{title}` created. The {role.mention} role and {channel.mention} channel will be used for this project."
+            f"Project `{title}` created. The {role.mention} role and {channel.mention} channel will be used for this project. Please run `/track-project-github` to setup github updates for this project and `/create-task` to create tasks for this project."
         )
 
     @app_commands.command(
@@ -267,16 +267,16 @@ class Projects(commands.Cog):
 
     # View tasks command
     @app_commands.command(
-        name="view-task-list",
-        description="View the task list for a project!",
+        name="view-task-sheet",
+        description="View the task sheet for a project!",
     )
     @app_commands.describe(
-        project="The project to view the task list for.",
+        project="The project to view the task sheet for.",
     )
     @app_commands.autocomplete(
         project=project_autocomplete,
     )
-    async def view_task_list(self, interaction: discord.Interaction, project: str):
+    async def view_task_sheet(self, interaction: discord.Interaction, project: str):
         """
         This command displays the task list for a given project.
         """
@@ -298,14 +298,14 @@ class Projects(commands.Cog):
                 ephemeral=True,
             )
             return
-        final_response = f"# {project}\n" + self.create_task_list(tasks)
+        final_response = f"# {project}\n" + self.create_task_sheet(tasks)
         await interaction.response.send_message(
             final_response, allowed_mentions=discord.AllowedMentions.none()
         )
 
-    def create_task_list(self, tasks: List[Task]) -> str:
+    def create_task_sheet(self, tasks: List[Task]) -> str:
         """
-        Create an organized task list for display based on provided tasks.
+        Create an organized task sheet for display based on provided tasks.
         """
         organized_tasks = {}
 
@@ -334,7 +334,7 @@ class Projects(commands.Cog):
                 response_message.append("")
 
         final_response = "\n".join(response_message)
-        return final_response
+        return final_response or "No tasks to display for this project."
 
     async def send_task_list_for_every_project(self):
         """
@@ -344,7 +344,7 @@ class Projects(commands.Cog):
         for project in projects:
             tasks = await self.bot.db.list_project_tasks(project.id)
             channel = self.bot.get_channel(project.channel)
-            final_response = f"# {project.title}\n" + self.create_task_list(tasks)
+            final_response = f"# {project.title}\n" + self.create_task_sheet(tasks)
             await channel.send(
                 final_response, allowed_mentions=discord.AllowedMentions.none()
             )

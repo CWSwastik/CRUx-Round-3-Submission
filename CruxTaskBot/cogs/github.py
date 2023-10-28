@@ -164,15 +164,15 @@ class Github(commands.Cog):
         ]
 
     @app_commands.command(
-        name="track_project",
-        description="Track a GitHub repository!",
+        name="track-project-github",
+        description="Track a project's GitHub repository!",
     )
     @app_commands.describe(project="The Project to setup tracking for")
     @app_commands.autocomplete(
         project=project_autocomplete,
     )
     @app_commands.checks.has_role("Senate")
-    async def track_project(
+    async def track_project_github(
         self,
         interaction: discord.Interaction,
         project: str,
@@ -183,21 +183,27 @@ class Github(commands.Cog):
 
         projects = await self.bot.db.list_all_projects()
         matching_projects = [p for p in projects if p.title == project]
-        if matching_projects:
-            project = matching_projects[0]
-            await interaction.response.defer()
-            res = await self.setup_webhook_for_project(project)
-            if res[0]:
-                await interaction.followup.send(
-                    f"Tracking setup for {project.title} with id={res[1]}!"
-                )
-            else:
-                await interaction.followup.send(
-                    f"Failed to setup tracking for {project.title}, response={res[1]} {res[2]}!"
-                )
-        else:
-            await interaction.response.send_message(
+        if not matching_projects:
+            return await interaction.response.send_message(
                 f"Project with title {project} not found!"
+            )
+
+        project = matching_projects[0]
+        await interaction.response.defer()
+
+        if project.webhook_id is not None:
+            return await interaction.followup.send(
+                f"Tracking already setup for {project.title} with id={project.webhook_id}!"
+            )
+
+        res = await self.setup_webhook_for_project(project)
+        if res[0]:
+            await interaction.followup.send(
+                f"Tracking setup for {project.title} with id={res[1]}!"
+            )
+        else:
+            await interaction.followup.send(
+                f"Failed to setup tracking for {project.title}, response={res[1]} {res[2]}!"
             )
 
     async def setup_webhook_for_project(self, project: Project):
