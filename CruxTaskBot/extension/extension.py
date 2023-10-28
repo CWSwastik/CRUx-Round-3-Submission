@@ -90,6 +90,12 @@ async def show_crux_tasks_window(ctx):
 
     session = aiohttp.ClientSession()
     async with session.get(url) as resp:
+        if resp.status != 200:
+            ext.panel = None
+            await session.close()
+            await ctx.window.show(InfoMessage("Invalid url, please reauthenticate."))
+            ext.server_url = None
+            return
         res = await resp.json()
 
     panel = WebviewPanel("Crux Tasks", vscode.ViewColumn.Two)
@@ -101,13 +107,23 @@ async def show_crux_tasks_window(ctx):
             async with session.post(
                 url, json={"id": data["id"], "action": "start"}
             ) as resp:
+                code = resp.status
                 res = await resp.text()
 
         elif data["name"] == "complete":
             async with session.post(
                 url, json={"id": data["id"], "action": "complete"}
             ) as resp:
+                code = resp.status
                 res = await resp.text()
+
+        if code == 401:
+            await panel.dispose()
+            ext.panel = None
+            await session.close()
+            await ctx.window.show(InfoMessage("Invalid url, please reauthenticate"))
+            ext.server_url = None
+            return
 
         async with session.get(url) as resp:
             res = await resp.json()

@@ -1,5 +1,6 @@
 from typing import Optional, List
 import datetime
+import uuid
 from dataclasses import dataclass
 
 
@@ -44,5 +45,9 @@ class Project:
 class User:
     id: int
     name: str
-    github: Optional[str]
-    email: Optional[str]
+    github: Optional[str] = None
+    email: Optional[str] = None
+    token: Optional[str] = None
+
+    def __post_init__(self):
+        self.token = self.token or uuid.uuid4().hex

@@ -50,7 +50,8 @@ class Database:
                     id BIGINT PRIMARY KEY NOT NULL,
                     name TEXT NOT NULL,
                     github TEXT,
-                    email TEXT
+                    email TEXT,
+                    token TEXT
                 );
             """
             )
@@ -274,19 +275,21 @@ class Database:
             name=data[1],
             github=data[2],
             email=data[3],
+            token=data[4],
         )
 
     # Create user
     async def create_user(self, user: User) -> None:
         await self.execute(
             """
-                INSERT INTO users (id, name, github, email)
-                VALUES (?, ?, ?, ?);
+                INSERT INTO users (id, name, github, email, token)
+                VALUES (?, ?, ?, ?, ?);
                 """,
             user.id,
             user.name,
             user.github,
             user.email,
+            user.token,
         )
 
     # Edit user
@@ -299,4 +302,22 @@ class Database:
             kwargs.get("github", user.github),
             kwargs.get("email", user.email),
             user.id,
+        )
+
+    # Fetch user using their token
+    async def fetch_user_by_token(self, token: str) -> Optional[User]:
+        data = await self.fetchone(
+            "SELECT * FROM users WHERE token = ?;",
+            token,
+        )
+
+        if data is None:
+            return None
+
+        return User(
+            id=data[0],
+            name=data[1],
+            github=data[2],
+            email=data[3],
+            token=data[4],
         )

@@ -4,6 +4,7 @@ from aiohttp import web
 from discord.ext import commands
 from discord import app_commands
 from utils import generate_documentation
+from utils.models import User
 
 
 class Webserver(commands.Cog):
@@ -15,15 +16,28 @@ class Webserver(commands.Cog):
             return web.Response(text="Hello, world")
 
         async def get_task_handler(request):
-            # TODO: Use an internal id instead of user id
-            user_id = request.match_info["user_id"]
-            tasks = await self.bot.db.list_user_tasks(user_id)
+            token = request.match_info["token"]
+            user = await self.bot.db.fetch_user_by_token(token)
+            if user is None:
+                return web.Response(text="Invalid token", status=401)
+
+            tasks = await self.bot.db.list_user_tasks(user.id)
             return web.json_response([task.to_dict() for task in tasks])
 
         async def post_task_handler(request):
             data = await request.json()
             status = "In Progress" if data["action"] == "start" else "Completed"
-            # TODO: check correct user
+
+            token = request.match_info["token"]
+            user = await self.bot.db.fetch_user_by_token(token)
+
+            if user is None:
+                return web.Response(text="Invalid token", status=401)
+
+            tasks = await self.bot.db.list_user_tasks(user.id)
+            if data["id"] not in [t.id for t in tasks]:
+                return web.Response(text="Invalid task", status=401)
+
             await self.bot.db.set_task_status(data["id"], status)
             return web.Response(text="OK")
 
@@ -139,8 +153,8 @@ class Webserver(commands.Cog):
 
         app = web.Application()
         app.router.add_get("/", root_handler)
-        app.router.add_get("/tasks/{user_id}", get_task_handler)
-        app.router.add_post("/tasks/{user_id}", post_task_handler)
+        app.router.add_get("/tasks/{token}", get_task_handler)
+        app.router.add_post("/tasks/{token}", post_task_handler)
         app.router.add_post("/generate-documentation", generate_documentation_handler)
         app.router.add_post("/push-to-github", push_to_github_handler)
         app.router.add_post("/webhook", webhook_handler)
@@ -158,8 +172,13 @@ class Webserver(commands.Cog):
         description="Returns the url that must be used to authenticate the extension",
     )
     async def authenticate_extension(self, interaction: discord.Interaction):
+        user = await self.bot.db.fetch_user(interaction.user.id)
+        if user is None:
+            user = User(id=interaction.user.id, name=interaction.user.global_name)
+            await self.bot.db.create_user(user)
+
         await interaction.response.send_message(
-            f"Please enter this link in the extension: {self.bot.config.webserver_url}/tasks/{interaction.user.id}",
+            f"Please enter this link in the extension: {self.bot.config.webserver_url}/tasks/{user.token}\nDo not share this with other users!",
             ephemeral=True,
         )
 
