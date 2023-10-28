@@ -2,9 +2,6 @@
 
 ImageDC++ is a command-line tool for sharing and retrieving images within a local network. It allows users to easily upload, download and search for images uploaded by other users.
 
-![image](https://github.com/CWSwastik/CRUx-Round-3-Submission/assets/110041714/aefdc620-7652-4313-bfb0-b0e389f4c54f)
-
-
 ## Features
 
 - **Image Sharing**: Share your image files with other users on the local network. You can share
