@@ -81,7 +81,7 @@ CruxTaskBot is a powerful Discord bot designed for the CRUx server, providing a 
         - Set the GitHub App ID as the value for `GITHUB_APP_ID` and the Installation ID as the value for `GITHUB_INSTALLATION_ID` in the `.env` file.
         - The Installation ID can be found from the url `https://github.com/organizations/[ORG]/settings/installations/[INSTALATION ID]`
           
-     5. **Local Testing with Ngrok (Optional)**:
+     5. **Local Testing with Ngrok (Required for github webhooks)**:
         - If you are running the bot locally for testing, you will need to use Ngrok to expose the webserver publically.
           ```bash
               ngrok http 8080
@@ -103,6 +103,11 @@ CruxTaskBot is a powerful Discord bot designed for the CRUx server, providing a 
 1. Download the `crux-task-extension-1.0.0.vsix` from [this](https://https://drive.google.com/file/d/1N4EXxkDnNYlVq7G7mK_QVXQfhQLA08l5/view?usp=sharing) google drive link.
 2. Install the Extension from the vsix file. For reference, https://code.visualstudio.com/docs/editor/extension-marketplace#_install-from-a-vsix
 
+**To run the extension in development mode:**
+1. Open the `CruxTaskBot/extension` directory in vscode
+2. Run the `extension.py` file (this will build the extension)
+3. Press F5 and a development window with the extension loaded in it will open.
+   
 *For detailed guidance on each step, please refer to the relevant documentation and references provided above.*
 
 ## Usage
